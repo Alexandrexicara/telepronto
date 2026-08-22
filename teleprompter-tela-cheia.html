@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teleprompter — Velocidade Visível</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%;
+            background: #000; color: #fff;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        .tela {
+            width: 100%; height: 100%;
+            position: absolute;
+            top: 0; left: 0;
+            overflow: hidden;
+        }
+        #texto {
+            font-size: 42px;
+            line-height: 1.6;
+            padding: 0 60px;
+            text-align: center;
+            width: 100%;
+            white-space: pre-wrap;
+        }
+
+        .linha-guia {
+            position: fixed;
+            top: 50%; left: 0; right: 0;
+            height: 3px;
+            background: red;
+            box-shadow: 0 0 12px red;
+            z-index: 5;
+        }
+
+        /* PAINEL COM VELOCIDADE VISÍVEL */
+        .painel {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(0,0,0,0.92);
+            padding: 12px;
+            z-index: 20;
+            transition: opacity 0.4s, transform 0.4s;
+        }
+        .painel.oculto {
+            opacity: 0;
+            transform: translateY(100%);
+            pointer-events: none;
+        }
+        .botao-mostrar-controles {
+            display: none;
+            position: fixed;
+            right: 12px;
+            bottom: 12px;
+            z-index: 40;
+            background: #22c55e;
+            color: #062b12;
+        }
+        .painel.oculto + .botao-mostrar-controles { display: block; }
+
+        .velocidade-box {
+            display: inline-block;
+            background: #111;
+            border: 2px solid #2563eb;
+            border-radius: 6px;
+            padding: 6px 14px;
+            margin: 3px 8px;
+            font-weight: bold;
+            font-size: 16px;
+            color: #0f0;
+            min-width: 90px;
+            text-align: center;
+        }
+
+        button {
+            padding: 10px 14px;
+            margin: 3px;
+            font-size: 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            background: #2563eb;
+            color: white;
+        }
+        button:hover { background: #1d4ed8; }
+        .btn-vermelho { background: #dc2626; }
+        .btn-vermelho:hover { background: #b91c1c; }
+
+        textarea {
+            width: 100%; height: 70px;
+            margin-top: 8px;
+            padding: 10px;
+            background: #222;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+        .linha-controles { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+        .controle-tamanho { color: #fff; font-weight: bold; margin: 3px 8px; }
+        input[type="range"] { width: 130px; vertical-align: middle; accent-color: #22c55e; }
+        input[type="text"], select { padding: 9px; margin: 3px; background: #222; color: #fff; border: 1px solid #555; border-radius: 6px; }
+
+        .aviso {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            color: #888;
+            font-size: 13px;
+            z-index: 6;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .aviso.mostrar { opacity: 1; }
+        .modo-cheio { background: #000; }
+        .velocidade-flutuante { position: fixed; top: 18px; left: 18px; z-index: 30; display: none; padding: 8px 14px; border: 2px solid #22c55e; border-radius: 6px; background: rgba(0,0,0,.8); color: #22c55e; font-size: 18px; font-weight: bold; }
+        .velocidade-flutuante.visivel { display: block; }
+        @media (max-width: 600px) {
+            .painel { max-height: 58vh; overflow-y: auto; padding: 8px; }
+            .linha-controles { gap: 2px; }
+            .linha-controles button, .linha-controles input[type="text"], .linha-controles select { max-width: 100%; }
+            button { padding: 10px 9px; font-size: 13px; }
+            #texto { padding: 0 16px; }
+            .controle-tamanho { display: flex; align-items: center; gap: 6px; }
+            input[type="range"] { width: min(130px, 38vw); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="aviso" id="aviso">Pressione ESPAÇO para mostrar os botões</div>
+<div class="velocidade-flutuante" id="velocidadeFlutuante">Velocidade: <span id="velocidadeTela">0.70</span></div>
+<div class="linha-guia"></div>
+<div class="tela">
+    <div id="texto"></div>
+</div>
+
+<div class="painel" id="painel">
+    <div class="linha-controles">
+        <button onclick="carregarTexto()">📄 Colocar Texto</button>
+        <button onclick="iniciar()">▶ INICIAR</button>
+        <button onclick="parar()">⏹ PARAR</button>
+        <button onclick="maisRapido()">⬆ Mais Rápido</button>
+        <button onclick="maisLento()">⬇ Mais Lento</button>
+        <span class="velocidade-box">Vel: <span id="mostrarVel">0.7</span></span>
+        <label class="controle-tamanho">Tamanho <input id="tamanhoTexto" type="range" min="20" max="100" value="42" oninput="alterarTamanho(this.value)"> <span id="mostrarTamanho">42px</span></label>
+        <button id="botaoTelaCheia" onclick="alternarTelaCheia()">⛶ Tela Cheia</button>
+    </div>
+    <textarea id="entradaTexto" placeholder="Cole seu texto aqui..."></textarea>
+    <div class="linha-controles">
+        <input id="nomeTexto" type="text" placeholder="Nome do texto">
+        <button onclick="salvarTexto()">💾 Salvar texto</button>
+        <button onclick="baixarTexto()">⬇ Arquivar .txt</button>
+        <label for="arquivoTexto"><button type="button">⬆ Abrir .txt</button></label><input id="arquivoTexto" type="file" accept=".txt,text/plain" hidden onchange="abrirArquivo(this.files[0])">
+        <select id="textosSalvos" onchange="abrirTextoSalvo(this.value)"><option value="">Textos salvos</option></select>
+        <button onclick="excluirTexto()">🗑 Excluir salvo</button>
+    </div>
+</div>
+<button class="botao-mostrar-controles" onclick="mostrarControles()">☰ Mostrar botões</button>
+
+<script>
+    const textoEl = document.getElementById('texto');
+    const painel = document.getElementById('painel');
+    const aviso = document.getElementById('aviso');
+    const mostrarVelEl = document.getElementById('mostrarVel');
+    const velocidadeTelaEl = document.getElementById('velocidadeTela');
+
+    let velocidade = 0.7;
+    let rodando = false;
+    let posicao = 0;
+
+    function alterarTamanho(valor) {
+        textoEl.style.fontSize = valor + 'px';
+        document.getElementById('mostrarTamanho').textContent = valor + 'px';
+    }
+
+    function obterTextosSalvos() { return JSON.parse(localStorage.getItem('teleprompterTextos') || '{}'); }
+    async function atualizarListaTextos() {
+        const lista = document.getElementById('textosSalvos');
+        lista.innerHTML = '<option value="">Textos salvos</option>';
+        try { (await fetch('/api/textos')).json().then(nomes => nomes.forEach(nome => lista.add(new Option(nome, nome)))); } catch (erro) { Object.keys(obterTextosSalvos()).sort().forEach(nome => lista.add(new Option(nome, nome))); }
+    }
+    async function salvarTexto() {
+        const nome = document.getElementById('nomeTexto').value.trim();
+        const texto = document.getElementById('entradaTexto').value;
+        if (!nome || !texto.trim()) return alert('Informe um nome e um texto para salvar.');
+        try { const resposta = await fetch('/api/textos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, texto }) }); if (!resposta.ok) throw new Error((await resposta.json()).erro); await atualizarListaTextos(); document.getElementById('textosSalvos').value = nome; } catch (erro) { const textos = obterTextosSalvos(); textos[nome] = texto; localStorage.setItem('teleprompterTextos', JSON.stringify(textos)); await atualizarListaTextos(); alert('Servidor indisponível. O texto foi salvo apenas neste navegador.'); }
+    }
+    async function abrirTextoSalvo(nome) {
+        if (!nome) return;
+        try { document.getElementById('entradaTexto').value = (await (await fetch('/api/textos/' + encodeURIComponent(nome))).json()).texto; } catch (erro) { document.getElementById('entradaTexto').value = obterTextosSalvos()[nome] || ''; }
+        carregarTexto();
+    }
+    async function excluirTexto() {
+        const lista = document.getElementById('textosSalvos');
+        if (!lista.value) return;
+        try { await fetch('/api/textos/' + encodeURIComponent(lista.value), { method: 'DELETE' }); } finally { atualizarListaTextos(); }
+    }
+    function baixarTexto() {
+        const texto = document.getElementById('entradaTexto').value;
+        if (!texto.trim()) return alert('Digite um texto antes de arquivar.');
+        const nome = document.getElementById('nomeTexto').value.trim() || 'meu-texto';
+        const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([texto], { type: 'text/plain;charset=utf-8' }));
+        link.download = nome.replace(/[\\/:*?"<>|]/g, '-') + '.txt'; link.click(); URL.revokeObjectURL(link.href);
+    }
+    function abrirArquivo(arquivo) {
+        if (!arquivo) return;
+        const leitor = new FileReader(); leitor.onload = () => { document.getElementById('entradaTexto').value = leitor.result; carregarTexto(); }; leitor.readAsText(arquivo, 'UTF-8');
+    }
+
+    function atualizarMostradorVelocidade() {
+        mostrarVelEl.textContent = velocidade.toFixed(2);
+        velocidadeTelaEl.textContent = velocidade.toFixed(2);
+    }
+
+    function carregarTexto() {
+        textoEl.textContent = document.getElementById('entradaTexto').value;
+        posicao = 0;
+        textoEl.style.transform = 'translateY(' + posicao + 'px)';
+    }
+
+    async function iniciar() {
+        if (!textoEl.textContent.trim()) carregarTexto();
+        if (!document.fullscreenElement) await alternarTelaCheia();
+        rodando = true;
+        painel.classList.add('oculto');
+        aviso.classList.add('mostrar');
+        document.getElementById('velocidadeFlutuante').classList.add('visivel');
+    }
+
+    function parar() {
+        rodando = false;
+        painel.classList.remove('oculto');
+        aviso.classList.remove('mostrar');
+        document.getElementById('velocidadeFlutuante').classList.remove('visivel');
+    }
+    function mostrarControles() { painel.classList.remove('oculto'); aviso.classList.remove('mostrar'); }
+
+    function maisRapido() {
+        velocidade += 0.25;
+        if (velocidade > 9.9) velocidade = 9.9;
+        atualizarMostradorVelocidade();
+    }
+
+    function maisLento() {
+        velocidade -= 0.25;
+        if (velocidade < 0.1) velocidade = 0.1;
+        atualizarMostradorVelocidade();
+    }
+
+    async function alternarTelaCheia() {
+        try {
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                await (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+                return;
+            }
+            const elemento = document.documentElement;
+            const entrar = elemento.requestFullscreen || elemento.webkitRequestFullscreen;
+            if (!entrar) throw new Error('API indisponível');
+            await entrar.call(elemento);
+        } catch (erro) {
+            alert('A tela cheia foi bloqueada. No Netlify, abra o site em HTTPS e clique diretamente no botão.');
+        }
+    }
+    function atualizarBotaoTelaCheia() {
+        document.getElementById('botaoTelaCheia').textContent = document.fullscreenElement ? '⛶ Sair da Tela Cheia' : '⛶ Tela Cheia';
+    }
+    document.addEventListener('fullscreenchange', atualizarBotaoTelaCheia);
+    document.addEventListener('webkitfullscreenchange', atualizarBotaoTelaCheia);
+
+    document.addEventListener('keydown', e => {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            if (painel.classList.contains('oculto')) {
+                painel.classList.remove('oculto');
+                aviso.classList.remove('mostrar');
+            } else {
+                painel.classList.add('oculto');
+                aviso.classList.add('mostrar');
+            }
+        }
+    });
+
+    function animar() {
+        if (rodando) {
+            posicao -= velocidade;
+            textoEl.style.transform = 'translateY(' + posicao + 'px)';
+        }
+        requestAnimationFrame(animar);
+    }
+    alterarTamanho(document.getElementById('tamanhoTexto').value);
+    atualizarListaTextos();
+    animar();
+</script>
+</body>
+</html>

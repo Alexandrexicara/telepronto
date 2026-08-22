@@ -1,0 +1,303 @@
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teleprompter + Gravação</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { background: #000; color: #fff; overflow: hidden; }
+
+        /* Câmera de fundo */
+        #camera {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            transform: scaleX(-1); /* espelha a imagem como selfie */
+        }
+
+        /* Texto do teleprompter por cima */
+        .area-texto {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 100%;
+            z-index: 10;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        #texto {
+            font-size: 32px;
+            line-height: 1.5;
+            color: white;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.9), -1px -1px 4px rgba(0,0,0,0.8);
+            padding: 0 80px;
+            text-align: center;
+            white-space: pre-wrap;
+        }
+        .linha-guia {
+            position: fixed;
+            top: 42%; left: 0; right: 0;
+            height: 2px;
+            background: red;
+            z-index: 15;
+            box-shadow: 0 0 10px red;
+        }
+
+        /* Painel de controles */
+        .controles {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(0,0,0,0.85);
+            padding: 12px;
+            z-index: 20;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .controles.oculto {
+            opacity: 0;
+            transform: translateY(100%);
+            pointer-events: none;
+        }
+        .botao-mostrar-controles {
+            display: none;
+            position: fixed;
+            right: 12px;
+            bottom: 12px;
+            z-index: 40;
+            background: #43a047;
+            color: white;
+        }
+        .controles.oculto + .botao-mostrar-controles { display: block; }
+        button {
+            padding: 10px 14px;
+            margin: 3px;
+            font-size: 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-vermelho { background: #e53935; color: white; }
+        .btn-vermelho:hover { background: #c62828; }
+        .btn-azul { background: #1e88e5; color: white; }
+        .btn-azul:hover { background: #1565c0; }
+        .btn-verde { background: #43a047; color: white; }
+        .btn-verde:hover { background: #2e7d32; }
+        textarea {
+            width: 100%;
+            height: 80px;
+            margin-top: 8px;
+            padding: 10px;
+            border-radius: 6px;
+            background: #222;
+            color: white;
+            border: 1px solid #444;
+            font-size: 15px;
+        }
+        .controle-tamanho { color: #fff; font-weight: bold; margin: 3px 8px; }
+        input[type="range"] { width: 130px; vertical-align: middle; accent-color: #43a047; }
+        input[type="text"], select { padding: 9px; margin: 3px; background: #222; color: #fff; border: 1px solid #555; border-radius: 6px; }
+        .status {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            background: #333;
+        }
+        .gravando { background: #e53935; animation: piscar 1s infinite; }
+        .modo-cheio { background: #000; }
+        .velocidade-flutuante { position: fixed; top: 18px; left: 18px; z-index: 30; display: none; padding: 8px 14px; border: 2px solid #22c55e; border-radius: 6px; background: rgba(0,0,0,.8); color: #22c55e; font-size: 18px; font-weight: bold; }
+        .velocidade-flutuante.visivel { display: block; }
+        .velocidade-box { display: inline-block; margin: 3px 8px; padding: 8px 12px; border: 2px solid #22c55e; border-radius: 6px; color: #22c55e; font-weight: bold; }
+        @keyframes piscar { 50% { opacity: 0.4; } }
+        @media (max-width: 600px) {
+            .controles { max-height: 55vh; overflow-y: auto; padding: 8px; }
+            .controles button, .controles input[type="text"], .controles select { max-width: 100%; }
+            .controles button { padding: 10px 9px; font-size: 13px; }
+            .controle-tamanho { display: flex; align-items: center; gap: 6px; }
+            input[type="range"] { width: min(130px, 38vw); }
+            #texto { padding: 0 16px; }
+            .velocidade-box { margin: 3px; padding: 7px 9px; }
+            .status { margin-left: 3px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Câmera fica aqui atrás -->
+<video id="camera" autoplay muted playsinline></video>
+<div class="velocidade-flutuante" id="velocidadeFlutuante">Velocidade: <span id="velocidadeTela">0.80</span></div>
+
+<!-- Linha guia vermelha -->
+<div class="linha-guia"></div>
+
+<!-- Texto rolando por cima -->
+<div class="area-texto">
+    <div id="texto"></div>
+</div>
+
+<!-- Botões e controles embaixo -->
+<div class="controles">
+    <button class="btn-verde" onclick="iniciarCamera()">📷 Ligar Câmera</button>
+    <button class="btn-vermelho" onclick="iniciarGravacao()">● GRAVAR</button>
+    <button class="btn-vermelho" onclick="pararGravacao()">⏹ Parar</button>
+    <button class="btn-azul" onclick="iniciarTexto()">▶ Texto</button>
+    <button class="btn-azul" onclick="pararTexto()">⏹ Texto</button>
+    <button class="btn-azul" onclick="maisRapido()">⬆+</button>
+    <button class="btn-azul" onclick="maisLento()">⬇-</button>
+    <span class="velocidade-box">Velocidade: <span id="mostrarVelocidade">0.80</span></span>
+    <button id="botaoTelaCheia" class="btn-azul" onclick="alternarTelaCheia()">⛶ Tela Cheia</button>
+    <label class="controle-tamanho">Tamanho <input id="tamanhoTexto" type="range" min="20" max="100" value="32" oninput="alterarTamanho(this.value)"> <span id="mostrarTamanho">32px</span></label>
+    <span id="status" class="status">pronto</span>
+    <textarea id="entradaTexto" placeholder="Cole seu texto aqui... Depois clique em ▶ Texto para começar a rolar!"></textarea>
+    <button class="btn-azul" onclick="carregarTexto()">✓ Colocar Texto</button>
+    <input id="nomeTexto" type="text" placeholder="Nome do texto">
+    <button class="btn-azul" onclick="salvarTextoNoProjeto()">💾 Salvar no projeto</button>
+    <select id="textosSalvos" onchange="abrirTextoDoProjeto(this.value)"><option value="">Textos salvos no projeto</option></select>
+    <button class="btn-azul" onclick="baixarTexto()">⬇ Arquivar .txt</button>
+    <label for="arquivoTexto"><button type="button" class="btn-azul">⬆ Abrir .txt</button></label><input id="arquivoTexto" type="file" accept=".txt,text/plain" hidden onchange="abrirArquivo(this.files[0])">
+</div>
+<button class="botao-mostrar-controles" onclick="mostrarControles()">☰ Mostrar botões</button>
+
+<script>
+    const video = document.getElementById('camera');
+    const textoEl = document.getElementById('texto');
+    const statusEl = document.getElementById('status');
+    const velocidadeTelaEl = document.getElementById('velocidadeTela');
+    const mostrarVelocidadeEl = document.getElementById('mostrarVelocidade');
+
+    let velocidade = 0.8;
+    let rodandoTexto = false;
+    let posicao = 0;
+    let gravando = false;
+    let mediaRecorder;
+    let dadosVideo = [];
+
+    async function alternarTelaCheia() {
+        try {
+            if (document.fullscreenElement || document.webkitFullscreenElement) { await (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+            const entrar = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+            if (!entrar) throw new Error('API indisponível');
+            await entrar.call(document.documentElement);
+        } catch (erro) { alert('A tela cheia foi bloqueada. No Netlify, abra o site em HTTPS e clique diretamente no botão.'); }
+    }
+    function atualizarBotaoTelaCheia() { document.getElementById('botaoTelaCheia').textContent = document.fullscreenElement ? '⛶ Sair da Tela Cheia' : '⛶ Tela Cheia'; }
+    document.addEventListener('fullscreenchange', atualizarBotaoTelaCheia);
+    document.addEventListener('webkitfullscreenchange', atualizarBotaoTelaCheia);
+
+    function alterarTamanho(valor) { textoEl.style.fontSize = valor + 'px'; document.getElementById('mostrarTamanho').textContent = valor + 'px'; }
+    function baixarTexto() { const texto = document.getElementById('entradaTexto').value; if (!texto.trim()) return alert('Digite um texto antes de arquivar.'); const nome = document.getElementById('nomeTexto').value.trim() || 'meu-texto'; const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([texto], { type: 'text/plain;charset=utf-8' })); link.download = nome.replace(/[\\/:*?"<>|]/g, '-') + '.txt'; link.click(); URL.revokeObjectURL(link.href); }
+    function abrirArquivo(arquivo) { if (!arquivo) return; const leitor = new FileReader(); leitor.onload = () => { document.getElementById('entradaTexto').value = leitor.result; carregarTexto(); }; leitor.readAsText(arquivo, 'UTF-8'); }
+    async function atualizarListaTextos() { const lista = document.getElementById('textosSalvos'); try { (await fetch('/api/textos')).json().then(nomes => nomes.forEach(nome => lista.add(new Option(nome, nome)))); } catch (erro) {} }
+    async function salvarTextoNoProjeto() { const nome = document.getElementById('nomeTexto').value.trim(); const texto = document.getElementById('entradaTexto').value; if (!nome || !texto.trim()) return alert('Informe um nome e um texto para salvar.'); try { const resposta = await fetch('/api/textos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, texto }) }); if (!resposta.ok) throw new Error(); await atualizarListaTextos(); alert('Texto salvo na pasta textos do projeto.'); } catch (erro) { alert('Inicie o projeto com npm start para salvar dentro da pasta textos.'); } }
+    async function abrirTextoDoProjeto(nome) { if (!nome) return; const resposta = await fetch('/api/textos/' + encodeURIComponent(nome)); const dados = await resposta.json(); document.getElementById('entradaTexto').value = dados.texto || ''; carregarTexto(); }
+
+    // 🔹 Ligar câmera
+    async function iniciarCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "user", width: 1280, height: 720 },
+                audio: true 
+            });
+            video.srcObject = stream;
+            statusEl.textContent = "câmera ligada";
+            statusEl.style.background = "#43a047";
+        } catch (err) {
+            alert("Erro ao ligar câmera: " + err.message);
+        }
+    }
+
+    // 🔹 Carregar texto
+    function carregarTexto() {
+        textoEl.textContent = document.getElementById('entradaTexto').value;
+        posicao = 0;
+        textoEl.style.transform = `translateY(${posicao}px)`;
+    }
+
+    // 🔹 Rolar texto
+    async function iniciarTexto() {
+        if (!textoEl.textContent.trim()) carregarTexto();
+        posicao = 0;
+        textoEl.style.transform = 'translateY(0px)';
+        if (!document.fullscreenElement) await alternarTelaCheia();
+        rodandoTexto = true;
+        document.getElementById('velocidadeFlutuante').classList.add('visivel');
+        document.querySelector('.controles').classList.add('oculto');
+    }
+    function pararTexto() {
+        rodandoTexto = false;
+        document.getElementById('velocidadeFlutuante').classList.remove('visivel');
+        document.querySelector('.controles').classList.remove('oculto');
+    }
+    function mostrarControles() { document.querySelector('.controles').classList.remove('oculto'); }
+    document.addEventListener('keydown', evento => {
+        if (evento.code !== 'Space') return;
+        evento.preventDefault();
+        document.querySelector('.controles').classList.toggle('oculto');
+    });
+    function atualizarVelocidade() { const valor = velocidade.toFixed(2); velocidadeTelaEl.textContent = valor; mostrarVelocidadeEl.textContent = valor; }
+    function maisRapido() { velocidade = Math.min(9.9, velocidade + 0.2); atualizarVelocidade(); }
+    function maisLento() { velocidade = Math.max(0.1, velocidade - 0.2); atualizarVelocidade(); }
+
+    // 🔹 Gravar vídeo
+    function iniciarGravacao() {
+        if (!video.srcObject) return alert("Primeiro ligue a câmera!");
+        if (!window.MediaRecorder) return alert("Este navegador não suporta gravação de vídeo.");
+        dadosVideo = [];
+        const tipoSuportado = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]
+            .find(tipo => MediaRecorder.isTypeSupported(tipo));
+        if (!tipoSuportado) return alert("O navegador não oferece um formato de gravação compatível.");
+        mediaRecorder = new MediaRecorder(video.srcObject, { mimeType: tipoSuportado });
+        mediaRecorder.ondataavailable = e => dadosVideo.push(e.data);
+        mediaRecorder.onstop = salvarVideo;
+        mediaRecorder.start(250);
+        gravando = true;
+        statusEl.textContent = "GRAVANDO";
+        statusEl.classList.add("gravando");
+        iniciarTexto(); // começa a rolar o texto junto
+    }
+
+    function pararGravacao() {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+        gravando = false;
+        rodandoTexto = false;
+        document.querySelector('.controles').classList.remove('oculto');
+        document.getElementById('velocidadeFlutuante').classList.remove('visivel');
+        statusEl.textContent = "salvando...";
+        statusEl.classList.remove("gravando");
+    }
+
+    function salvarVideo() {
+        const blob = new Blob(dadosVideo, { type: mediaRecorder.mimeType || "video/webm" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "gravacao-" + new Date().toLocaleString('pt-BR').replace(/[\/:]/g,'-') + ".webm";
+        a.click();
+        statusEl.textContent = "salvo!";
+        statusEl.style.background = "#43a047";
+    }
+
+    // 🔹 Animação contínua do texto
+    function animar() {
+        if (rodandoTexto) {
+            posicao -= velocidade;
+            textoEl.style.transform = `translateY(${posicao}px)`;
+        }
+        requestAnimationFrame(animar);
+    }
+    alterarTamanho(document.getElementById('tamanhoTexto').value);
+    atualizarVelocidade();
+    atualizarListaTextos();
+    animar();
+</script>
+</body>
+</html>
