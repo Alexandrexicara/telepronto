@@ -1,0 +1,299 @@
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gravador de Tela + Áudio</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:sans-serif}
+body{background:#0f0f0f;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+h1{font-size:1.5rem;margin-bottom:30px;text-align:center}
+.botoes{display:flex;gap:12px;margin-bottom:25px;flex-wrap:wrap;justify-content:center}
+button,.link{padding:14px 24px;border:none;border-radius:8px;font-size:1rem;font-weight:bold;cursor:pointer;transition:all .2s}
+.link{background:#3498db;color:#fff;text-decoration:none}
+#btnIniciar{background:#2ecc71;color:#fff}
+#btnParar{background:#e74c3c;color:#fff;display:none}
+button:disabled{opacity:.5;cursor:not-allowed}
+.preview{width:100%;max-width:700px;background:#000;border-radius:8px;overflow:hidden;margin:20px 0;display:none}
+.preview{position:relative;width:100%;max-width:700px;background:#000;border-radius:8px;overflow:hidden;margin:20px 0;display:none;line-height:0}
+#composicao{width:100%;height:auto;display:block}
+#cameraPreview{position:absolute;display:none;width:180px;aspect-ratio:16/9;object-fit:cover;transform:scaleX(-1);border:3px solid #fff;border-radius:6px;cursor:move;touch-action:none}
+.camera-ligada #cameraPreview{display:block}
+.opcoes{display:flex;align-items:center;gap:8px;margin:0 auto 12px;color:#ddd}
+.opcoes input{width:18px;height:18px;accent-color:#2ecc71}
+.microfone{display:none;align-items:center;gap:8px;margin:10px auto;color:#ddd}.microfone.visivel{display:flex}
+#nivelMicrofone{width:150px}
+.gravando{color:#ff4444;animation:piscar 1s infinite}
+.debug-panel{margin-top:18px;width:min(720px,100%);background:#1b1b1b;border:1px solid #444;border-radius:10px;padding:12px 14px;color:#ddd;text-align:left;display:block}
+.debug-panel strong{display:block;margin-bottom:8px;color:#fff}
+#debugLog{font-size:.9rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+@keyframes piscar{50%{opacity:.3}}
+.aviso{margin-top:15px;font-size:.9rem;color:#aaa;text-align:center;max-width:500px}
+</style>
+</head>
+<body>
+
+<h1>🎥 Gravador de Tela + Câmera</h1>
+
+<div class="botoes">
+  <a class="link" href="/">↩ Teleprompter</a>
+  <button id="btnIniciar">🔴 Iniciar Gravação</button>
+  <button id="btnParar">⏹️ Parar e Baixar</button>
+</div>
+
+<label class="opcoes"><input id="incluirCamera" type="checkbox" checked> Com janelinha da câmera</label>
+
+<div class="preview" id="caixaPreview">
+  <canvas id="composicao"></canvas>
+  <video id="cameraPreview" autoplay muted playsinline></video>
+</div>
+
+<div class="microfone" id="painelMicrofone">Microfone: <span id="estadoMicrofone">verificando...</span><meter id="nivelMicrofone" min="0" max="1" value="0"></meter></div>
+
+<div class="status" id="status">Pronto para gravar</div>
+<div class="debug-panel" id="debugPanel">
+  <strong>Diagnóstico do gravador</strong>
+  <div id="debugLog">Aguardando início da gravação...</div>
+</div>
+<div id="downloadContainer" style="display:none;margin-top:14px;text-align:center"></div>
+
+<p class="aviso">
+💻 PC: escolha a tela/janela<br>
+📱 Celular Android: compartilhe a tela todo<br>
+✅ A câmera frontal fica sobre a tela e o microfone é testado antes de gravar
+</p>
+
+<script>
+const btnIniciar=document.getElementById('btnIniciar'),btnParar=document.getElementById('btnParar'),incluirCamera=document.getElementById('incluirCamera'),canvas=document.getElementById('composicao'),camera=document.getElementById('cameraPreview'),preview=document.getElementById('caixaPreview'),status=document.getElementById('status'),painel=document.getElementById('painelMicrofone'),estado=document.getElementById('estadoMicrofone'),nivel=document.getElementById('nivelMicrofone'),downloadContainer=document.getElementById('downloadContainer'),debugLog=document.getElementById('debugLog'),ctx=canvas.getContext('2d');
+const telaVideo=document.createElement('video');telaVideo.autoplay=true;telaVideo.muted=true;telaVideo.playsInline=true;
+let tela=null,cameraStream=null,gravacao=null,gravador=null,partes=[],frame=null,audio=null,analisador=null,dados=null,pos={x:16,y:16},arrastando=false,offset={x:0,y:0},usarCamera=false,finalizando=false;
+
+function logDebug(passos, mensagem, erro=false){
+  const linha = `[${new Date().toLocaleTimeString()}] ${passos}: ${mensagem}`;
+  console[erro ? 'error' : 'log'](linha);
+  debugLog.textContent = linha + '\n' + debugLog.textContent;
+  status.textContent = mensagem;
+}
+function tipo(){return['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(item=>MediaRecorder.isTypeSupported(item))}
+function atualizarNivel(){if(!analisador||!dados)return;analisador.getByteTimeDomainData(dados);const volume=dados.reduce((s,v)=>s+Math.abs(v-128),0)/dados.length/128;nivel.value=Math.min(1,volume*3)}
+function clamp(valor,min,max){return Math.min(Math.max(valor,min),max)}
+function limparRecursos(){
+  if(frame) cancelAnimationFrame(frame); frame=null;
+  if(audio){audio.close();audio=null}
+  if(camera.srcObject){camera.srcObject.getTracks().forEach(track=>track.stop());camera.srcObject=null}
+  if(tela){tela.getTracks().forEach(track=>track.stop());tela=null}
+  if(cameraStream){cameraStream.getTracks().forEach(track=>track.stop());cameraStream=null}
+  if(gravacao){gravacao.getTracks().forEach(track=>track.stop());gravacao=null}
+  preview.style.display='none'; preview.classList.remove('camera-ligada'); painel.classList.remove('visivel');
+  btnIniciar.style.display='inline'; btnParar.style.display='none'; incluirCamera.disabled=false;
+  status.classList.remove('gravando');
+  camera.style.left=''; camera.style.top='';
+  analisador=null; dados=null; usarCamera=false;
+}
+function mostrarDownload(url,nome){
+  downloadContainer.innerHTML='';
+  const link=document.createElement('a');
+  link.href=url; link.download=nome; link.textContent='⬇️ Baixar gravação';
+  link.style.display='inline-block'; link.style.padding='10px 16px'; link.style.background='#2980b9';
+  link.style.color='#fff'; link.style.borderRadius='8px'; link.style.textDecoration='none';
+  downloadContainer.appendChild(link); downloadContainer.style.display='block';
+}
+function resetUiParaPronto(){
+  status.textContent='Pronto para gravar';
+  status.classList.remove('gravando');
+  downloadContainer.style.display='none';
+  downloadContainer.innerHTML='';
+}
+function mover(x,y){
+  const area=preview.getBoundingClientRect();
+  const largura=camera.offsetWidth||180;
+  const altura=camera.offsetHeight||101;
+  const maxX=Math.max(0,preview.clientWidth-largura);
+  const maxY=Math.max(0,preview.clientHeight-altura);
+  pos.x=clamp(x-area.left-offset.x,0,maxX);
+  pos.y=clamp(y-area.top-offset.y,0,maxY);
+  camera.style.left=pos.x+'px';
+  camera.style.top=pos.y+'px';
+}
+camera.addEventListener('pointerdown',e=>{if(!incluirCamera.checked)return;arrastando=true;camera.setPointerCapture(e.pointerId);const r=camera.getBoundingClientRect();offset={x:e.clientX-r.left,y:e.clientY-r.top}});camera.addEventListener('pointermove',e=>{if(arrastando)mover(e.clientX,e.clientY)});camera.addEventListener('pointerup',()=>arrastando=false);camera.addEventListener('pointerleave',()=>arrastando=false);
+function desenhar(){
+  if(telaVideo.readyState>=2){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(telaVideo,0,0,canvas.width,canvas.height);
+    if(usarCamera && cameraStream && camera.readyState>=2){
+      const larguraCamera=camera.offsetWidth||180;
+      const alturaCamera=camera.offsetHeight||101;
+      const escala=canvas.width/Math.max(preview.clientWidth,1);
+      const w=larguraCamera*escala;
+      const h=alturaCamera*escala;
+      ctx.save();
+      ctx.translate((pos.x*escala)+w,(pos.y*escala));
+      ctx.scale(-1,1);
+      ctx.drawImage(camera,0,0,w,h);
+      ctx.restore();
+    }
+  }
+  atualizarNivel();
+  frame=requestAnimationFrame(desenhar);
+}
+function prepararAudio(){
+  const entradaAudio=[];
+  if(tela?.getAudioTracks().length) entradaAudio.push(tela);
+  if(cameraStream?.getAudioTracks().length) entradaAudio.push(cameraStream);
+  if(audio) audio.close();
+  audio=new AudioContext();
+  const destino=audio.createMediaStreamDestination();
+  entradaAudio.forEach(fonte=>{
+    const origem=audio.createMediaStreamSource(fonte);
+    origem.connect(destino);
+    if(fonte===cameraStream && fonte.getAudioTracks().length){
+      analisador=audio.createAnalyser();
+      analisador.fftSize=256;
+      dados=new Uint8Array(analisador.frequencyBinCount);
+      origem.connect(analisador);
+    }
+  });
+  estado.textContent=entradaAudio.length?'funcionando':'sem acesso';
+  return destino.stream;
+}
+async function iniciar(){
+  let micStream = null;
+  try{
+    logDebug('STEP 1', 'Validando suporte do navegador');
+    if(!navigator.mediaDevices?.getUserMedia||!navigator.mediaDevices?.getDisplayMedia){
+      throw Error('Este navegador não suporta câmera ou captura de tela. Use Chrome/Edge em HTTPS ou localhost.');
+    }
+    usarCamera=incluirCamera.checked;
+    downloadContainer.style.display='none';
+    downloadContainer.innerHTML='';
+
+    logDebug('STEP 2', 'Abrindo seletor de tela/janela...');
+    status.textContent='Abrindo escolha da tela...';
+    tela=await navigator.mediaDevices.getDisplayMedia({
+      video:{cursor:'always',frameRate:30,width:{ideal:1920},height:{ideal:1080}},
+      audio:true
+    });
+    logDebug('STEP 2', 'Tela escolhida com sucesso.');
+
+    if(usarCamera){
+      logDebug('STEP 3', 'Solicitando permissão da câmera...');
+      cameraStream=await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},
+        audio:true
+      });
+      camera.srcObject=cameraStream;
+      camera.muted=true;
+      await camera.play();
+      logDebug('STEP 3', 'Câmera autorizada.');
+    } else {
+      logDebug('STEP 3', 'Câmera desligada pelo usuário.');
+    }
+
+    logDebug('STEP 4', 'Solicitando permissão do microfone...');
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: false
+    });
+    logDebug('STEP 4', 'Microfone autorizado.');
+
+    logDebug('STEP 5', 'Preparando preview da tela e canvas...');
+    telaVideo.srcObject=tela;
+    await telaVideo.play();
+
+    if(telaVideo.videoWidth && telaVideo.videoHeight){
+      canvas.width=telaVideo.videoWidth;
+      canvas.height=telaVideo.videoHeight;
+    }else{
+      canvas.width=1280; canvas.height=720;
+    }
+
+    preview.style.display='block';
+    preview.classList.toggle('camera-ligada',usarCamera);
+    painel.classList.add('visivel');
+    if(usarCamera){requestAnimationFrame(()=>mover(preview.clientWidth-(camera.offsetWidth||180)-16,16));}
+
+    logDebug('STEP 6', 'Misturando áudio e iniciando MediaRecorder...');
+    const audioMixado=prepararAudio();
+    const videoStream=canvas.captureStream(30);
+    audioMixado.getAudioTracks().forEach(track=>videoStream.addTrack(track));
+
+    gravacao=videoStream;
+    const mime=tipo();
+    if(!mime) throw Error('Formato de vídeo não suportado no navegador.');
+    partes=[];
+    gravador=new MediaRecorder(videoStream,{mimeType:mime});
+    gravador.ondataavailable=e=>{if(e.data&&e.data.size){partes.push(e.data); console.log('chunk recebido', e.data.size);}}
+    gravador.onstop=()=>{
+      setTimeout(()=>{
+        if(finalizando) return;
+        salvar();
+      },250);
+    };
+    if(tela.getVideoTracks().length){tela.getVideoTracks()[0].onended=parar}
+
+    frame=requestAnimationFrame(desenhar);
+    logDebug('STEP 6.5', 'Aguardando o primeiro frame do canvas para evitar gravação vazia...');
+    await new Promise(resolve => setTimeout(resolve, 500));
+    gravador.start(250);
+
+    btnIniciar.style.display='none';
+    btnParar.style.display='inline';
+    incluirCamera.disabled=true;
+    status.textContent=usarCamera?'GRAVANDO tela + câmera + microfone':'GRAVANDO tela + microfone';
+    status.classList.add('gravando');
+
+    if(!usarCamera && micStream?.getAudioTracks().length){
+      const micAudio = audio.createMediaStreamSource(micStream);
+      micAudio.connect(audio.destination);
+    }
+    logDebug('STEP 7', 'Gravação iniciada com sucesso.');
+  }catch(e){
+    console.error('ERRO NO FLUXO DE GRAVAÇÃO', e);
+    logDebug('ERRO', `Falha: ${e.message}. O que fazer: abra em Chrome/Edge, aceite a tela, câmera e microfone, e use localhost ou HTTPS.`, true);
+    if(micStream){micStream.getTracks().forEach(track=>track.stop())}
+    [tela,cameraStream].forEach(fonte=>fonte?.getTracks().forEach(track=>track.stop()));
+    limparRecursos();
+    resetUiParaPronto();
+    status.textContent='Erro: '+e.message;
+  }
+}
+function salvar(){
+  finalizando=true;
+  if(!partes.length){
+    status.textContent='Nenhum quadro foi capturado.';
+    console.warn('Nenhum quadro foi capturado pelo MediaRecorder.');
+    limparRecursos();
+    finalizando=false;
+    return;
+  }
+  const blob=new Blob(partes,{type:gravador?.mimeType||'video/webm'}),url=URL.createObjectURL(blob),nome='gravacao_'+Date.now()+'.webm';
+  console.log('Arquivo pronto para download', {bytes: blob.size, tipo: blob.type});
+  mostrarDownload(url,nome);
+  status.textContent='Vídeo salvo com '+(usarCamera?'câmera':'tela')+' e áudio';
+  status.classList.remove('gravando');
+  btnIniciar.style.display='inline'; btnParar.style.display='none'; incluirCamera.disabled=false;
+  preview.style.display='none'; preview.classList.remove('camera-ligada'); painel.classList.remove('visivel');
+  [tela,cameraStream,gravacao].forEach(fonte=>fonte?.getTracks().forEach(track=>track.stop()));
+  limparRecursos();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+  finalizando=false;
+}
+function parar(){
+  if(gravador && gravador.state !== 'inactive'){
+    status.textContent='Finalizando gravação...';
+    btnParar.disabled=true;
+    gravador.stop();
+    return;
+  }
+  limparRecursos();
+}
+btnIniciar.addEventListener('click',iniciar);btnParar.addEventListener('click',parar);
+</script>
+
+</body>
+</html>
