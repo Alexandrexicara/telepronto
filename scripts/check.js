@@ -32,6 +32,14 @@ if (validEmails.some(email => !isValidEmail(email)) || invalidEmails.some(email 
 }
 console.log('OK: validação de e-mail aprovada.');
 
+const authTests = spawnSync(process.execPath, ['scripts/test-auth.js'], { encoding: 'utf8' });
+if (authTests.status !== 0) {
+  process.stderr.write(authTests.stderr || authTests.stdout);
+  process.exit(1);
+}
+process.stdout.write(authTests.stdout);
+
+
 (async () => {
   for (const dependency of ['@modelcontextprotocol/server', 'zod/v4', 'pg', 'bcryptjs', 'jsonwebtoken']) {
     await import(dependency);
