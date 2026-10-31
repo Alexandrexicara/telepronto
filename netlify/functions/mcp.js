@@ -4,7 +4,7 @@ const handler = createMcpHandler(() => {
   const server = new McpServer({ name:'telepronto', version:'1.0.0' });
   server.registerTool('telepronto_status', {
     description:'Retorna o estado e os recursos públicos do Telepronto.',
-    inputSchema:{}
+    inputSchema:z.object({})
   }, async () => ({content:[{type:'text',text:JSON.stringify({service:'Telepronto',status:'online',features:['teleprompter','camera-recording','account-wallet','SumUp-checkout'],pricePerVideo:0.10,currencyOptions:['BRL','USD']})}]}));
   server.registerTool('telepronto_credit_packages', {
     description:'Lista os pacotes públicos de créditos de gravação do Telepronto.',
