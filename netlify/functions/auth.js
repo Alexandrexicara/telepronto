@@ -36,7 +36,7 @@ exports.handler = async event => {
     const email = String(data.email || '').trim().toLowerCase();
     const password = String(data.password || '');
 
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || email.length > 254) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
       return json(400, { error: 'Informe um e-mail válido.' });
     }
     if (password.length < 8 || password.length > 128) {
