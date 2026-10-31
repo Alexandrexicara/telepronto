@@ -1,6 +1,9 @@
 const { db } = require('./lib/db');
 const { json } = require('./lib/auth');
 
+// SumUp espera uma confirmação 2xx sem corpo para encerrar a entrega do webhook.
+const ack = () => ({ statusCode: 204, headers: { 'Cache-Control': 'no-store' }, body: '' });
+
 exports.handler = async event => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Método não permitido.' });
 
@@ -9,11 +12,11 @@ exports.handler = async event => {
     const payload = JSON.parse(event.body || '{}');
     // A SumUp pode introduzir novos eventos; ignoramos os que não são mudança de checkout.
     if (payload.event_type && payload.event_type !== 'CHECKOUT_STATUS_CHANGED') {
-      return json(200, { ok: true, ignored: true });
+      return ack();
     }
 
     const checkoutId = String(payload.id || '');
-    if (!checkoutId) return json(200, { ok: true, ignored: true });
+    if (!checkoutId) return ack();
     if (!process.env.SUMUP_API_KEY || !process.env.SUMUP_MERCHANT_CODE) {
       throw new Error('Credenciais SumUp não configuradas.');
     }
@@ -28,7 +31,7 @@ exports.handler = async event => {
 
     const pool = db();
     if (checkout.status !== 'PAID' && !['FAILED', 'EXPIRED'].includes(checkout.status)) {
-      return json(200, { ok: true, pending: true });
+      return ack();
     }
 
     client = await pool.connect();
@@ -40,7 +43,7 @@ exports.handler = async event => {
     );
     if (!payment.rowCount) {
       await client.query('ROLLBACK');
-      return json(200, { ok: true, unknown: true });
+      return ack();
     }
 
     const p = payment.rows[0];
@@ -53,7 +56,7 @@ exports.handler = async event => {
         );
       }
       await client.query('COMMIT');
-      return json(200, { ok: true, failed: true });
+      return ack();
     }
 
     const validAmount = Number.isFinite(Number(checkout.amount)) &&
@@ -70,7 +73,7 @@ exports.handler = async event => {
         [p.id]
       );
       await client.query('COMMIT');
-      return json(200, { ok: true, review: true });
+      return ack();
     }
 
     if (p.status !== 'paid') {
@@ -94,7 +97,7 @@ exports.handler = async event => {
     }
 
     await client.query('COMMIT');
-    return json(200, { ok: true, paid: true });
+    return ack();
   } catch (error) {
     if (client) await client.query('ROLLBACK').catch(() => {});
     console.error('webhook:', error.code || '', error.message);
