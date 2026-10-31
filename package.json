@@ -12,7 +12,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js"
+    "check": "node --check server.js && for file in netlify/functions/*.js netlify/functions/lib/*.js; do node --check \"$file\"; done && node -e \"Promise.all(['@modelcontextprotocol/server','zod/v4','pg','bcryptjs','jsonwebtoken'].map(x=>import(x))).then(()=>console.log('Dependências e SDK MCP carregados'))\""
   },
   "engines": {
     "node": ">=20"
