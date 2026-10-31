@@ -272,7 +272,6 @@
         if (!document.fullscreenElement) await alternarTelaCheia();
         rodandoTexto = true;
         document.getElementById('velocidadeFlutuante').classList.add('visivel');
-        document.querySelector('.controles').classList.add('oculto');
     }
     function pararTexto() {
         rodandoTexto = false;
@@ -280,11 +279,6 @@
         document.querySelector('.controles').classList.remove('oculto');
     }
     function mostrarControles() { document.querySelector('.controles').classList.remove('oculto'); }
-    document.addEventListener('keydown', evento => {
-        if (evento.code !== 'Space') return;
-        evento.preventDefault();
-        document.querySelector('.controles').classList.toggle('oculto');
-    });
     function atualizarVelocidade() { const valor = velocidade.toFixed(2); velocidadeTelaEl.textContent = valor; mostrarVelocidadeEl.textContent = valor; }
     function maisRapido() { velocidade = Math.min(9.9, velocidade + 0.2); atualizarVelocidade(); }
     function maisLento() { velocidade = Math.max(0.1, velocidade - 0.2); atualizarVelocidade(); }
@@ -304,6 +298,7 @@
         gravando = true;
         statusEl.textContent = "GRAVANDO";
         statusEl.classList.add("gravando");
+        document.querySelector(".controles").classList.add("oculto"); // oculta somente após clicar em GRAVAR
         iniciarTexto(); // começa a rolar o texto junto
     }
 
