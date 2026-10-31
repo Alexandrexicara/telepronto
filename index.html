@@ -195,6 +195,7 @@
     <button class="btn-azul" onclick="maisLento()">⬇-</button>
     <span class="velocidade-box">Velocidade: <span id="mostrarVelocidade">0.80</span></span>
     <button id="botaoTelaCheia" class="btn-azul" onclick="alternarTelaCheia()">⛶ Tela Cheia</button>
+    <button id="btnGravarTelaCompleta" class="btn-vermelho" type="button" onclick="alternarGravacaoTelaCompleta()">🔴 Gravar a tela inteira</button>
     <button class="btn-azul" type="button" onclick="abrirGravadorTela()">📹 Gravador de tela HTML</button>
     <label class="controle-tamanho">Tamanho <input id="tamanhoTexto" type="range" min="20" max="100" value="32" oninput="alterarTamanho(this.value)"> <span id="mostrarTamanho">32px</span></label>
     <span id="status" class="status">pronto</span>
@@ -412,7 +413,85 @@
     if(new URLSearchParams(location.search).has('payment')) setTimeout(()=>{carregarConta();alert('Estamos confirmando seu pagamento. Os créditos aparecem assim que a SumUp confirmar.');},700);
 
 
-    // Abre o gravador de tela na mesma aba, sem bloqueio de pop-up.
+    // Gravação de tela integrada ao Telepronto (independente da página gravador-tela.html).
+    let gravadorTelaCompleta = null;
+    let fluxoTelaCompleta = null;
+    let fluxoMicrofoneTela = null;
+    let partesTelaCompleta = [];
+
+    async function alternarGravacaoTelaCompleta() {
+        if (gravadorTelaCompleta && gravadorTelaCompleta.state !== 'inactive') {
+            gravadorTelaCompleta.stop();
+            return;
+        }
+
+        if (!navigator.mediaDevices?.getDisplayMedia || !window.MediaRecorder) {
+            alert('Seu navegador não oferece suporte à gravação de tela.');
+            return;
+        }
+
+        const botao = document.getElementById('btnGravarTelaCompleta');
+        try {
+            // O usuário escolhe compartilhar a tela inteira na janela do navegador.
+            fluxoTelaCompleta = await navigator.mediaDevices.getDisplayMedia({
+                video: { cursor: 'always' },
+                audio: true
+            });
+
+            const faixas = [...fluxoTelaCompleta.getTracks()];
+            try {
+                fluxoMicrofoneTela = await navigator.mediaDevices.getUserMedia({ audio: true });
+                faixas.push(...fluxoMicrofoneTela.getAudioTracks());
+            } catch (erroAudio) {
+                console.warn('Microfone não disponível; gravando o áudio compartilhado, se houver.', erroAudio);
+            }
+
+            const fluxoComAudio = new MediaStream(faixas);
+            const formatos = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+            const formato = formatos.find(tipo => MediaRecorder.isTypeSupported(tipo)) || '';
+            gravadorTelaCompleta = new MediaRecorder(fluxoComAudio, formato ? { mimeType: formato } : undefined);
+            partesTelaCompleta = [];
+
+            gravadorTelaCompleta.ondataavailable = evento => {
+                if (evento.data?.size) partesTelaCompleta.push(evento.data);
+            };
+            gravadorTelaCompleta.onstop = () => {
+                const arquivo = new Blob(partesTelaCompleta, { type: gravadorTelaCompleta.mimeType || 'video/webm' });
+                const url = URL.createObjectURL(arquivo);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'telepronto-tela-' + new Date().toISOString().replace(/[:.]/g, '-') + '.webm';
+                link.click();
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+                [fluxoTelaCompleta, fluxoMicrofoneTela].forEach(fluxo => fluxo?.getTracks().forEach(faixa => faixa.stop()));
+                fluxoTelaCompleta = null;
+                fluxoMicrofoneTela = null;
+                botao.textContent = '🔴 Gravar a tela inteira';
+                botao.classList.remove('gravando');
+                statusEl.textContent = 'Gravação da tela salva!';
+                statusEl.style.background = '#43a047';
+            };
+
+            gravadorTelaCompleta.start(500);
+            botao.textContent = '⏹ Parar gravação da tela';
+            botao.classList.add('gravando');
+            statusEl.textContent = 'GRAVANDO A TELA INTEIRA';
+            statusEl.classList.add('gravando');
+
+            fluxoTelaCompleta.getVideoTracks()[0].addEventListener('ended', () => {
+                if (gravadorTelaCompleta?.state === 'recording') gravadorTelaCompleta.stop();
+            }, { once: true });
+        } catch (erro) {
+            [fluxoTelaCompleta, fluxoMicrofoneTela].forEach(fluxo => fluxo?.getTracks().forEach(faixa => faixa.stop()));
+            fluxoTelaCompleta = null;
+            fluxoMicrofoneTela = null;
+            botao.textContent = '🔴 Gravar a tela inteira';
+            botao.classList.remove('gravando');
+            alert('Não foi possível iniciar a gravação: ' + erro.message);
+        }
+    }
+
+    // Abre o gravador de tela em HTML separado, sem misturar as duas funções.
     function abrirGravadorTela() {
         window.location.href = 'gravador-tela.html';
     }
