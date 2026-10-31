@@ -6,7 +6,10 @@ on:
     branches: [main, feature/conta-creditos-sumup-mcp]
 jobs:
   validar:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
