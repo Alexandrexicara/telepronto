@@ -354,7 +354,18 @@
         const data=await apiConta('/.netlify/functions/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,email:document.getElementById('contaEmail').value,password:document.getElementById('contaSenha').value})});
         tokenConta=data.token; localStorage.setItem('telepronto_token',tokenConta); usuarioConta=data.user;
         await carregarConta(); msg.textContent='Conta conectada.';
-      }catch(e){msg.textContent=e.message;}
+      }catch(e){
+        let message=e.message;
+        try{
+          const response=await fetch('/.netlify/functions/health');
+          const diagnostic=await response.json();
+          if(!diagnostic.configuration?.databaseConfigured) message+=' Diagnóstico: DATABASE_URL não está disponível neste deploy.';
+          else if(!diagnostic.databaseConnected) message+=' Diagnóstico: não foi possível conectar ao PostgreSQL.';
+          else if(!diagnostic.schemaReady) message+=' Diagnóstico: faltam tabelas no banco ('+(diagnostic.missingTables||[]).join(', ')+').';
+          if(!diagnostic.configuration?.jwtConfigured) message+=' JWT_SECRET ausente ou inválida neste deploy.';
+        }catch{}
+        msg.textContent=message;
+      }
     }
     async function carregarConta(){
       if(!tokenConta){document.getElementById('areaLogin').hidden=false;document.getElementById('areaCarteira').hidden=true;document.getElementById('saldoCreditos').textContent='Entre para ver créditos';return;}
@@ -492,6 +503,8 @@
     function abrirGravadorTela() {
         window.location.href = 'gravador-tela.html';
     }
+
+    carregarConta();
 </script>
 </body>
 </html>
