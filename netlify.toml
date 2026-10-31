@@ -1,4 +1,5 @@
 [build]
+  command = "npm install --no-audit --no-fund && npm run check"
   publish = "."
   functions = "netlify/functions"
 
