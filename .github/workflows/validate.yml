@@ -1,0 +1,21 @@
+name: validar-telepronto
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, feature/conta-creditos-sumup-mcp]
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Verificar sintaxe JavaScript
+        run: |
+          node --check server.js
+          for file in netlify/functions/*.js netlify/functions/lib/*.js; do
+            node --check "$file"
+          done
