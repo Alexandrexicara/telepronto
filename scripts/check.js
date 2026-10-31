@@ -18,7 +18,7 @@ for (const file of files) {
   if (result.status !== 0) {
     failed = true;
     process.stderr.write(result.stderr || result.stdout);
-    process.stderr.write('Falha de sintaxe: ' + file + '\\n');
+    process.stderr.write('Falha de sintaxe: ' + file + '\n');
   }
 }
 if (failed) process.exit(1);
