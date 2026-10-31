@@ -39,6 +39,13 @@ if (authTests.status !== 0) {
 }
 process.stdout.write(authTests.stdout);
 
+const webhookTests = spawnSync(process.execPath, ['scripts/test-webhook.js'], { encoding: 'utf8' });
+if (webhookTests.status !== 0) {
+  process.stderr.write(webhookTests.stderr || webhookTests.stdout);
+  process.exit(1);
+}
+process.stdout.write(webhookTests.stdout);
+
 
 (async () => {
   for (const dependency of ['@modelcontextprotocol/server', 'zod/v4', 'pg', 'bcryptjs', 'jsonwebtoken']) {
