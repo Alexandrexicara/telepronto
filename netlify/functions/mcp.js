@@ -11,7 +11,7 @@ async function getHandler() {
       }, async () => ({content:[{type:'text',text:JSON.stringify({service:'Telepronto',status:'online',features:['teleprompter','camera-recording','account-wallet','SumUp-checkout'],pricePerVideo:0.10,currencyOptions:['BRL','USD']})}]}));
       server.registerTool('telepronto_credit_packages', {
         description:'Lista os pacotes públicos de créditos de gravação do Telepronto.',
-        inputSchema:z.z.object({currency:z.enum(['BRL','USD']).default('BRL')})
+        inputSchema:z.object({currency:z.enum(['BRL','USD']).default('BRL')})
       }, async ({currency}) => {
         const factor = currency === 'USD' ? '$' : 'R$';
         const packages = [{videos:10,amount:1},{videos:20,amount:2},{videos:100,amount:10},{videos:500,amount:50}].map(p=>({...p,price:factor+p.amount.toFixed(2)}));
