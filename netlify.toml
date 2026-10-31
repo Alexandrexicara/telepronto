@@ -1,0 +1,26 @@
+[build]
+  command = "npm install --no-audit --no-fund && npm run check"
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[redirects]]
+  from = "/api/textos"
+  to = "/.netlify/functions/textos"
+  status = 200
+
+[[redirects]]
+  from = "/api/textos/*"
+  to = "/.netlify/functions/textos/:splat"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

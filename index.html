@@ -118,57 +118,6 @@
         .velocidade-flutuante { position: fixed; top: 18px; left: 18px; z-index: 30; display: none; padding: 8px 14px; border: 2px solid #22c55e; border-radius: 6px; background: rgba(0,0,0,.8); color: #22c55e; font-size: 18px; font-weight: bold; }
         .velocidade-flutuante.visivel { display: block; }
         .velocidade-box { display: inline-block; margin: 3px 8px; padding: 8px 12px; border: 2px solid #22c55e; border-radius: 6px; color: #22c55e; font-weight: bold; }
-
-        /* Botão flutuante Gravar Tela */
-        .btn-gravar-tela {
-            position: fixed;
-            right: 16px;
-            bottom: 16px;
-            z-index: 50;
-            background: #e53935;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            padding: 14px 20px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(229,57,53,0.4);
-            transition: all 0.3s ease;
-            display: none;
-            tabindex: -1;
-        }
-        .btn-gravar-tela.visivel { display: block; }
-        .btn-gravar-tela:hover { background: #c62828; transform: translateY(-2px); }
-
-        /* Botão mostrar/ocultar gravação (sempre visível para o usuário abrir/fechar) */
-        .btn-toggle-gravacao {
-            position: fixed;
-            right: 16px;
-            bottom: 80px;
-            z-index: 50;
-            background: #43a047;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            padding: 12px 16px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(67,160,71,0.4);
-            transition: all 0.3s ease;
-            display: block;
-            tabindex: -1;
-        }
-        .btn-toggle-gravacao.oculto { display: none; }
-        .btn-toggle-gravacao:hover { background: #2e7d32; transform: translateY(-2px); }
-
-        @media (max-width: 600px) {
-            .btn-gravar-tela { right: 12px; bottom: 12px; padding: 12px 16px; font-size: 14px; }
-            .btn-toggle-gravacao { right: 12px; bottom: 72px; padding: 10px 14px; font-size: 13px; }
-        }
-        /* Evita que os botões fixos recebam foco pela tecla Tab */
-        .btn-gravar-tela, .btn-toggle-gravacao, .btn-voltar { tabindex: -1; }
         @keyframes piscar { 50% { opacity: 0.4; } }
         @media (max-width: 600px) {
             .controles { max-height: 55vh; overflow-y: auto; padding: 8px; }
@@ -180,9 +129,50 @@
             .velocidade-box { margin: 3px; padding: 7px 9px; }
             .status { margin-left: 3px; }
         }
+    
+    .conta-topo{position:fixed;top:10px;right:10px;z-index:60;display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 20px)}
+    .conta-topo button{font-size:12px;padding:8px 10px;margin:0}
+    .conta-painel{position:fixed;top:54px;right:10px;z-index:61;background:rgba(15,18,25,.97);border:1px solid #444;border-radius:12px;padding:14px;width:min(340px,calc(100vw - 20px));box-shadow:0 10px 35px #0009;display:none}
+    .conta-painel.aberto{display:block}.conta-painel input,.conta-painel select{width:100%;margin:5px 0;padding:11px}
+    .conta-painel button{margin:4px 2px}.conta-painel .linha{display:flex;gap:6px}.conta-painel .linha button{flex:1}
+    .conta-painel small{color:#bbb;display:block;margin:7px 0}.saldo-chip{background:#173c2a;color:#8df0ae;border:1px solid #287a4b;border-radius:20px;padding:7px 10px;font-size:12px;font-weight:bold}
+    @media(max-width:600px){.conta-topo{top:6px;right:6px}.conta-topo button{font-size:11px;padding:7px}.conta-painel{top:48px;right:6px}}
+
     </style>
 </head>
 <body>
+
+<div class="conta-topo">
+  <span id="saldoCreditos" class="saldo-chip">0 créditos</span>
+  <button class="btn-azul" onclick="alternarPainelConta()">👤 Conta / Créditos</button>
+</div>
+<section id="painelConta" class="conta-painel">
+  <div id="areaLogin">
+    <strong>Conta Telepronto</strong>
+    <small>Crie sua conta para guardar seus créditos e usar em outros dispositivos.</small>
+    <input id="contaEmail" type="email" autocomplete="email" placeholder="Seu e-mail">
+    <input id="contaSenha" type="password" autocomplete="current-password" placeholder="Senha (mínimo 8 caracteres)">
+    <div class="linha"><button class="btn-verde" onclick="autenticarConta('register')">Criar conta</button><button class="btn-azul" onclick="autenticarConta('login')">Entrar</button></div>
+    <small id="mensagemConta"></small>
+  </div>
+  <div id="areaCarteira" hidden>
+    <strong id="emailContaAtiva"></strong>
+    <p style="margin:8px 0">Saldo: <strong id="saldoDetalhe">0</strong> créditos</p>
+    <label>Comprar créditos</label>
+    <select id="pacoteCreditos">
+      <option value="br-10">10 vídeos — R$ 1,00</option>
+      <option value="br-20">20 vídeos — R$ 2,00</option>
+      <option value="br-100">100 vídeos — R$ 10,00</option>
+      <option value="br-500">500 vídeos — R$ 50,00</option>
+    </select>
+    <select id="moedaCreditos" onchange="atualizarPacotesTela()"><option value="BRL">Brasil — Real (BRL)</option><option value="USD">Exterior — Dólar (USD)</option></select>
+    <button class="btn-verde" style="width:100%" onclick="comprarCreditos()">💳 Comprar pacote pela SumUp</button>
+    <button class="btn-azul" onclick="atualizarSaldo()">↻ Atualizar saldo</button>
+    <button class="btn-vermelho" onclick="sairConta()">Sair da conta</button>
+    <small>Os créditos não expiram. Uma gravação concluída consome 1 crédito.</small>
+  </div>
+</section>
+
 
 <!-- Câmera fica aqui atrás -->
 <video id="camera" autoplay muted playsinline></video>
@@ -199,7 +189,7 @@
 <!-- Botões e controles embaixo -->
 <div class="controles">
     <button class="btn-verde" onclick="iniciarCamera()">📷 Ligar Câmera</button>
-    <button class="btn-vermelho" onclick="iniciarGravacao()">● GRAVAR</button>
+    <button class="btn-vermelho" onclick="iniciarGravacao(event)">● GRAVAR</button>
     <button class="btn-vermelho" onclick="pararGravacao()">⏹ Parar</button>
     <button class="btn-azul" onclick="iniciarTexto()">▶ Texto</button>
     <button class="btn-azul" onclick="pararTexto()">⏹ Texto</button>
@@ -284,7 +274,6 @@
         if (!document.fullscreenElement) await alternarTelaCheia();
         rodandoTexto = true;
         document.getElementById('velocidadeFlutuante').classList.add('visivel');
-        document.querySelector('.controles').classList.add('oculto');
     }
     function pararTexto() {
         rodandoTexto = false;
@@ -292,17 +281,12 @@
         document.querySelector('.controles').classList.remove('oculto');
     }
     function mostrarControles() { document.querySelector('.controles').classList.remove('oculto'); }
-    document.addEventListener('keydown', evento => {
-        if (evento.code !== 'Space') return;
-        evento.preventDefault();
-        document.querySelector('.controles').classList.toggle('oculto');
-    });
     function atualizarVelocidade() { const valor = velocidade.toFixed(2); velocidadeTelaEl.textContent = valor; mostrarVelocidadeEl.textContent = valor; }
     function maisRapido() { velocidade = Math.min(9.9, velocidade + 0.2); atualizarVelocidade(); }
     function maisLento() { velocidade = Math.max(0.1, velocidade - 0.2); atualizarVelocidade(); }
 
     // 🔹 Gravar vídeo
-    function iniciarGravacao() {
+    function iniciarGravacao(ocultarControles = true) {
         if (!video.srcObject) return alert("Primeiro ligue a câmera!");
         if (!window.MediaRecorder) return alert("Este navegador não suporta gravação de vídeo.");
         dadosVideo = [];
@@ -316,6 +300,7 @@
         gravando = true;
         statusEl.textContent = "GRAVANDO";
         statusEl.classList.add("gravando");
+        if (ocultarControles) document.querySelector(".controles").classList.add("oculto"); // somente clique/toque real no botão GRAVAR
         iniciarTexto(); // começa a rolar o texto junto
     }
 
@@ -351,6 +336,90 @@
     atualizarVelocidade();
     atualizarListaTextos();
     animar();
+
+    // Conta, carteira e pagamentos Telepronto
+    let tokenConta = localStorage.getItem('telepronto_token') || '';
+    let usuarioConta = null;
+    function alternarPainelConta(){document.getElementById('painelConta').classList.toggle('aberto');}
+    async function apiConta(url, options={}) {
+      const headers={...(options.headers||{}),...(tokenConta?{Authorization:'Bearer '+tokenConta}:{})};
+      const r=await fetch(url,{...options,headers});
+      const data=await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(data.error||'Não foi possível concluir a operação.');
+      return data;
+    }
+    async function autenticarConta(action){
+      const msg=document.getElementById('mensagemConta'); msg.textContent='Aguarde...';
+      try{
+        const data=await apiConta('/.netlify/functions/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,email:document.getElementById('contaEmail').value,password:document.getElementById('contaSenha').value})});
+        tokenConta=data.token; localStorage.setItem('telepronto_token',tokenConta); usuarioConta=data.user;
+        await carregarConta(); msg.textContent='Conta conectada.';
+      }catch(e){
+        let message=e.message;
+        try{
+          const response=await fetch('/.netlify/functions/health');
+          const diagnostic=await response.json();
+          if(!diagnostic.configuration?.databaseConfigured) message+=' Diagnóstico: DATABASE_URL não está disponível neste deploy.';
+          else if(!diagnostic.databaseConnected) message+=' Diagnóstico: não foi possível conectar ao PostgreSQL.';
+          else if(!diagnostic.schemaReady) message+=' Diagnóstico: faltam tabelas no banco ('+(diagnostic.missingTables||[]).join(', ')+').';
+          if(!diagnostic.configuration?.jwtConfigured) message+=' JWT_SECRET ausente ou inválida neste deploy.';
+        }catch{}
+        msg.textContent=message;
+      }
+    }
+    async function carregarConta(){
+      if(!tokenConta){document.getElementById('areaLogin').hidden=false;document.getElementById('areaCarteira').hidden=true;document.getElementById('saldoCreditos').textContent='Entre para ver créditos';return;}
+      try{
+        const data=await apiConta('/.netlify/functions/auth');
+        usuarioConta=data.user;
+        document.getElementById('emailContaAtiva').textContent=usuarioConta.email;
+        document.getElementById('areaLogin').hidden=true;document.getElementById('areaCarteira').hidden=false;
+        await atualizarSaldo();
+      }catch(e){sairConta();}
+    }
+    async function atualizarSaldo(){
+      try{const d=await apiConta('/.netlify/functions/billing');document.getElementById('saldoCreditos').textContent=d.balance+' créditos';document.getElementById('saldoDetalhe').textContent=d.balance;}
+      catch(e){document.getElementById('mensagemConta').textContent=e.message;}
+    }
+    function atualizarPacotesTela(){
+      const moeda=document.getElementById('moedaCreditos').value, sel=document.getElementById('pacoteCreditos');
+      const valores=moeda==='USD'?[['us-10','10 vídeos — US$ 1.00'],['us-20','20 vídeos — US$ 2.00'],['us-100','100 vídeos — US$ 10.00'],['us-500','500 vídeos — US$ 50.00']]:[['br-10','10 vídeos — R$ 1,00'],['br-20','20 vídeos — R$ 2,00'],['br-100','100 vídeos — R$ 10,00'],['br-500','500 vídeos — R$ 50,00']];
+      sel.innerHTML=''; valores.forEach(([v,t])=>sel.add(new Option(t,v)));
+    }
+    async function comprarCreditos(){
+      try{
+        const currency=document.getElementById('moedaCreditos').value;
+        const d=await apiConta('/.netlify/functions/billing',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({packageId:document.getElementById('pacoteCreditos').value,currency})});
+        location.href=d.checkoutUrl;
+      }catch(e){alert(e.message);}
+    }
+    function sairConta(){tokenConta='';usuarioConta=null;localStorage.removeItem('telepronto_token');carregarConta();}
+    async function debitarGravacao(){
+      if(!tokenConta) throw new Error('Entre na sua conta antes de gravar.');
+      const id=crypto.randomUUID();
+      return await apiConta('/.netlify/functions/billing',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'consume',recordingId:id})});
+    }
+    const iniciarGravacaoOriginal = iniciarGravacao;
+    iniciarGravacao = async function(event){
+      if(!tokenConta){alternarPainelConta();alert('Entre ou crie sua conta para usar as gravações com créditos.');return;}
+      try{
+        const carteira=await apiConta('/.netlify/functions/billing');
+        if(Number(carteira.balance)<1){alternarPainelConta();alert('Você está sem créditos. Compre um pacote para gravar.');return;}
+        iniciarGravacaoOriginal(Number(event?.detail) > 0); // eventos de teclado (Espaço/Enter) nunca ocultam os controles
+      }catch(e){alert(e.message);}
+    };
+    const salvarVideoOriginal = salvarVideo;
+    salvarVideo = async function(){
+      try{
+        await debitarGravacao();
+        salvarVideoOriginal();
+        statusEl.textContent='salvo! 1 crédito utilizado';
+        await atualizarSaldo();
+      }catch(e){statusEl.textContent='gravação não liberada';alert('Não foi possível confirmar o crédito. O vídeo não será disponibilizado: '+e.message);}
+    };
+    carregarConta();
+    if(new URLSearchParams(location.search).has('payment')) setTimeout(()=>{carregarConta();alert('Estamos confirmando seu pagamento. Os créditos aparecem assim que a SumUp confirmar.');},700);
+
 
     // Gravação de tela integrada ao Telepronto (independente da página gravador-tela.html).
     let gravadorTelaCompleta = null;
