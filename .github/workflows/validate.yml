@@ -12,10 +12,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
       - run: npm install --no-audit --no-fund
-      - name: Verificar sintaxe JavaScript
-        run: |
-          node --check server.js
-          for file in netlify/functions/*.js netlify/functions/lib/*.js; do
-            node --check "$file"
-          done
+      - name: Verificar sintaxe e dependências
+        run: npm run check
