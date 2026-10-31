@@ -337,6 +337,79 @@
     atualizarVelocidade();
     atualizarListaTextos();
     animar();
+
+    // Conta, carteira e pagamentos Telepronto
+    let tokenConta = localStorage.getItem('telepronto_token') || '';
+    let usuarioConta = null;
+    function alternarPainelConta(){document.getElementById('painelConta').classList.toggle('aberto');}
+    async function apiConta(url, options={}) {
+      const headers={...(options.headers||{}),...(tokenConta?{Authorization:'Bearer '+tokenConta}:{})};
+      const r=await fetch(url,{...options,headers});
+      const data=await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(data.error||'Não foi possível concluir a operação.');
+      return data;
+    }
+    async function autenticarConta(action){
+      const msg=document.getElementById('mensagemConta'); msg.textContent='Aguarde...';
+      try{
+        const data=await apiConta('/.netlify/functions/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,email:document.getElementById('contaEmail').value,password:document.getElementById('contaSenha').value})});
+        tokenConta=data.token; localStorage.setItem('telepronto_token',tokenConta); usuarioConta=data.user;
+        await carregarConta(); msg.textContent='Conta conectada.';
+      }catch(e){msg.textContent=e.message;}
+    }
+    async function carregarConta(){
+      if(!tokenConta){document.getElementById('areaLogin').hidden=false;document.getElementById('areaCarteira').hidden=true;document.getElementById('saldoCreditos').textContent='Entre para ver créditos';return;}
+      try{
+        const data=await apiConta('/.netlify/functions/auth');
+        usuarioConta=data.user;
+        document.getElementById('emailContaAtiva').textContent=usuarioConta.email;
+        document.getElementById('areaLogin').hidden=true;document.getElementById('areaCarteira').hidden=false;
+        await atualizarSaldo();
+      }catch(e){sairConta();}
+    }
+    async function atualizarSaldo(){
+      try{const d=await apiConta('/.netlify/functions/billing');document.getElementById('saldoCreditos').textContent=d.balance+' créditos';document.getElementById('saldoDetalhe').textContent=d.balance;}
+      catch(e){document.getElementById('mensagemConta').textContent=e.message;}
+    }
+    function atualizarPacotesTela(){
+      const moeda=document.getElementById('moedaCreditos').value, sel=document.getElementById('pacoteCreditos');
+      const valores=moeda==='USD'?[['us-10','10 vídeos — US$ 1.00'],['us-20','20 vídeos — US$ 2.00'],['us-100','100 vídeos — US$ 10.00'],['us-500','500 vídeos — US$ 50.00']]:[['br-10','10 vídeos — R$ 1,00'],['br-20','20 vídeos — R$ 2,00'],['br-100','100 vídeos — R$ 10,00'],['br-500','500 vídeos — R$ 50,00']];
+      sel.innerHTML=''; valores.forEach(([v,t])=>sel.add(new Option(t,v)));
+    }
+    async function comprarCreditos(){
+      try{
+        const currency=document.getElementById('moedaCreditos').value;
+        const d=await apiConta('/.netlify/functions/billing',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({packageId:document.getElementById('pacoteCreditos').value,currency})});
+        location.href=d.checkoutUrl;
+      }catch(e){alert(e.message);}
+    }
+    function sairConta(){tokenConta='';usuarioConta=null;localStorage.removeItem('telepronto_token');carregarConta();}
+    async function debitarGravacao(){
+      if(!tokenConta) throw new Error('Entre na sua conta antes de gravar.');
+      const id=crypto.randomUUID();
+      return await apiConta('/.netlify/functions/billing',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'consume',recordingId:id})});
+    }
+    const iniciarGravacaoOriginal = iniciarGravacao;
+    iniciarGravacao = async function(){
+      if(!tokenConta){alternarPainelConta();alert('Entre ou crie sua conta para usar as gravações com créditos.');return;}
+      try{
+        const carteira=await apiConta('/.netlify/functions/billing');
+        if(Number(carteira.balance)<1){alternarPainelConta();alert('Você está sem créditos. Compre um pacote para gravar.');return;}
+        iniciarGravacaoOriginal();
+      }catch(e){alert(e.message);}
+    };
+    const salvarVideoOriginal = salvarVideo;
+    salvarVideo = async function(){
+      try{
+        await debitarGravacao();
+        salvarVideoOriginal();
+        statusEl.textContent='salvo! 1 crédito utilizado';
+        await atualizarSaldo();
+      }catch(e){statusEl.textContent='gravação não liberada';alert('Não foi possível confirmar o crédito. O vídeo não será disponibilizado: '+e.message);}
+    };
+    carregarConta();
+    if(new URLSearchParams(location.search).has('payment')) setTimeout(()=>{carregarConta();alert('Estamos confirmando seu pagamento. Os créditos aparecem assim que a SumUp confirmar.');},700);
+
 </script>
 </body>
 </html>
