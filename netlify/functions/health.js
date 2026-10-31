@@ -14,6 +14,7 @@ exports.handler = async event => {
   let databaseConnected = false;
   let schemaReady = false;
   let missingTables = [];
+  let databaseError = null;
 
   if (configuration.databaseConfigured) {
     try {
@@ -29,7 +30,8 @@ exports.handler = async event => {
       missingTables = Object.entries(tables).filter(([, exists]) => !exists).map(([name]) => name);
       schemaReady = missingTables.length === 0;
     } catch (error) {
-      console.error('health database:', error.code || '', error.message);
+      databaseError = error.code || 'CONNECTION_ERROR';
+      console.error('health database:', databaseError, error.message);
     }
   }
 
@@ -40,6 +42,7 @@ exports.handler = async event => {
     databaseConnected,
     schemaReady,
     missingTables,
+    databaseError,
     configuration,
     note: 'Este diagnóstico nunca retorna valores de chaves ou senhas.'
   });
