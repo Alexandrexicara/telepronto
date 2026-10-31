@@ -18,7 +18,7 @@ async function getHandler() {
         return {content:[{type:'text',text:JSON.stringify({currency,pricePerVideo:0.10,packages})}]};
       });
       return server;
-    });
+    }, { legacy:'reject', responseMode:'json' });
   })();
   return handlerPromise;
 }
