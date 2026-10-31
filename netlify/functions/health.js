@@ -15,18 +15,23 @@ exports.handler = async event => {
   let schemaReady = false;
   let missingTables = [];
   let databaseError = null;
+  let databaseInfo = null;
 
   if (configuration.databaseConfigured) {
     try {
       const result = await db().query(`
         SELECT
+          current_database() AS database,
+          current_setting('server_version') AS database_version,
           to_regclass('public.users') IS NOT NULL AS users,
           to_regclass('public.wallets') IS NOT NULL AS wallets,
           to_regclass('public.payments') IS NOT NULL AS payments,
           to_regclass('public.credit_ledger') IS NOT NULL AS credit_ledger
       `);
       databaseConnected = true;
-      const tables = result.rows[0] || {};
+      const row = result.rows[0] || {};
+      databaseInfo = { database: row.database, version: row.database_version };
+      const tables = Object.fromEntries(Object.entries(row).filter(([key]) => !['database', 'database_version'].includes(key)));
       missingTables = Object.entries(tables).filter(([, exists]) => !exists).map(([name]) => name);
       schemaReady = missingTables.length === 0;
     } catch (error) {
@@ -43,6 +48,7 @@ exports.handler = async event => {
     schemaReady,
     missingTables,
     databaseError,
+    databaseInfo,
     configuration,
     note: 'Este diagnóstico nunca retorna valores de chaves ou senhas.'
   });
