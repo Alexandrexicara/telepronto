@@ -187,7 +187,7 @@
 <!-- Botões e controles embaixo -->
 <div class="controles">
     <button class="btn-verde" onclick="iniciarCamera()">📷 Ligar Câmera</button>
-    <button class="btn-vermelho" onclick="iniciarGravacao()">● GRAVAR</button>
+    <button class="btn-vermelho" onclick="iniciarGravacao(event)">● GRAVAR</button>
     <button class="btn-vermelho" onclick="pararGravacao()">⏹ Parar</button>
     <button class="btn-azul" onclick="iniciarTexto()">▶ Texto</button>
     <button class="btn-azul" onclick="pararTexto()">⏹ Texto</button>
@@ -284,7 +284,7 @@
     function maisLento() { velocidade = Math.max(0.1, velocidade - 0.2); atualizarVelocidade(); }
 
     // 🔹 Gravar vídeo
-    function iniciarGravacao() {
+    function iniciarGravacao(ocultarControles = true) {
         if (!video.srcObject) return alert("Primeiro ligue a câmera!");
         if (!window.MediaRecorder) return alert("Este navegador não suporta gravação de vídeo.");
         dadosVideo = [];
@@ -298,7 +298,7 @@
         gravando = true;
         statusEl.textContent = "GRAVANDO";
         statusEl.classList.add("gravando");
-        document.querySelector(".controles").classList.add("oculto"); // oculta somente após clicar em GRAVAR
+        if (ocultarControles) document.querySelector(".controles").classList.add("oculto"); // somente clique/toque real no botão GRAVAR
         iniciarTexto(); // começa a rolar o texto junto
     }
 
@@ -387,12 +387,12 @@
       return await apiConta('/.netlify/functions/billing',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'consume',recordingId:id})});
     }
     const iniciarGravacaoOriginal = iniciarGravacao;
-    iniciarGravacao = async function(){
+    iniciarGravacao = async function(event){
       if(!tokenConta){alternarPainelConta();alert('Entre ou crie sua conta para usar as gravações com créditos.');return;}
       try{
         const carteira=await apiConta('/.netlify/functions/billing');
         if(Number(carteira.balance)<1){alternarPainelConta();alert('Você está sem créditos. Compre um pacote para gravar.');return;}
-        iniciarGravacaoOriginal();
+        iniciarGravacaoOriginal(Number(event?.detail) > 0); // eventos de teclado (Espaço/Enter) nunca ocultam os controles
       }catch(e){alert(e.message);}
     };
     const salvarVideoOriginal = salvarVideo;
