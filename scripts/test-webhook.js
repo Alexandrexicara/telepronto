@@ -86,33 +86,33 @@ const event = () => ({
 (async () => {
   reset();
   let response = await handler(event());
-  assert.equal(response.statusCode, 200);
+  assert.equal(response.statusCode, 204);
   assert.equal(payment.status, 'paid');
   assert.equal(balance, 10, 'pagamento aprovado deve liberar 10 créditos');
   assert.equal(ledgerInserted, true);
 
   response = await handler(event());
-  assert.equal(response.statusCode, 200);
+  assert.equal(response.statusCode, 204);
   assert.equal(balance, 10, 'webhook repetido não pode duplicar créditos');
 
   reset();
   checkout.merchant_code = 'OUTRO-MERCHANT';
   response = await handler(event());
-  assert.equal(response.statusCode, 200);
+  assert.equal(response.statusCode, 204);
   assert.equal(payment.status, 'review');
   assert.equal(balance, 0, 'checkout de outro estabelecimento não pode creditar');
 
   reset();
   checkout.status = 'FAILED';
   response = await handler(event());
-  assert.equal(response.statusCode, 200);
+  assert.equal(response.statusCode, 204);
   assert.equal(payment.status, 'failed');
   assert.equal(balance, 0);
 
   reset();
   checkout.status = 'PENDING';
   response = await handler(event());
-  assert.equal(response.statusCode, 200);
+  assert.equal(response.statusCode, 204);
   assert.equal(payment.status, 'pending');
   assert.equal(balance, 0);
 
