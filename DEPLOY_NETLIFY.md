@@ -24,7 +24,7 @@ Em **Site configuration > Environment variables**, configure:
 | `APP_URL` | URL pública, por exemplo `https://telepronto.netlify.app` |
 | `MCP_ACCESS_TOKEN` | Token privado forte para proteger o MCP |
 
-Use geradores seguros para criar `JWT_SECRET` e `MCP_ACCESS_TOKEN). Nunca reutilize a chave da SumUp como segredo JWT. Configure as variáveis nos contextos de Deploy Preview e Production conforme for testar/publicar.
+Use geradores seguros para criar `JWT_SECRET` e `MCP_ACCESS_TOKEN`. Nunca reutilize a chave da SumUp como segredo JWT. Configure as variáveis nos contextos de Deploy Preview e Production conforme for testar/publicar.
 
 O arquivo `.env.example` lista os nomes das variáveis sem conter credenciais reais.
 
