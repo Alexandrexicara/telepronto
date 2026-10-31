@@ -22,6 +22,16 @@ for (const file of files) {
   }
 }
 if (failed) process.exit(1);
+
+const { isValidEmail } = require('../netlify/functions/lib/validation');
+const validEmails = ['celio@example.com', 'usuario+teste@dominio.com.br'];
+const invalidEmails = ['invalido', 'com espaco @dominio.com', 'a@b'];
+if (validEmails.some(email => !isValidEmail(email)) || invalidEmails.some(email => isValidEmail(email))) {
+  console.error('Falha no teste de validação de e-mail.');
+  process.exit(1);
+}
+console.log('OK: validação de e-mail aprovada.');
+
 (async () => {
   for (const dependency of ['@modelcontextprotocol/server', 'zod/v4', 'pg', 'bcryptjs', 'jsonwebtoken']) {
     await import(dependency);
