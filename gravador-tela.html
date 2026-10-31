@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📹 Gravador TOTAL — Grava Toda Tela</title>
+<style>
+:root {
+  --v: #e50914; --p: #0a0a0a; --a: #0066ff;
+  --sucesso: #28c745; --aviso: #ff9500;
+  --fundo: #0f0f0f; --texto: #f0f0f0;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+body {
+  background: var(--p); color: var(--texto); min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; padding: 20px;
+}
+h1 { color: var(--v); margin: 20px 0; font-size: 1.8rem; text-align: center; }
+.cartao {
+  background: var(--fundo); border-radius: 16px; padding: 30px;
+  max-width: 600px; width: 100%; box-shadow: 0 0 25px rgba(229,9,20,0.25);
+  border: 1px solid #222;
+}
+.status {
+  padding: 15px; border-radius: 10px; margin-bottom: 20px;
+  font-weight: bold; text-align: center;
+}
+.status.parado { background: #1a1a1a; color: #aaa; }
+.status.gravando { background: rgba(40,199,69,0.15); color: var(--sucesso); border: 1px solid var(--sucesso); animation: pulsar 1s infinite; }
+@keyframes pulsar { 0%{opacity:1} 50%{opacity:0.6} 100%{opacity:1} }
+.status.erro { background: rgba(229,9,20,0.15); color: var(--v); border: 1px solid var(--v); }
+.botoes { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+button {
+  flex: 1; min-width: 140px; padding: 14px 20px; border: none; border-radius: 10px;
+  font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.25s ease;
+}
+button:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+.btn-iniciar { background: var(--sucesso); color: white; }
+.btn-parar { background: var(--v); color: white; }
+.btn-baixar { background: var(--a); color: white; }
+button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.opcoes { background: #1a1a1a; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+.opcoes label { display: flex; align-items: center; gap: 8px; margin: 8px 0; cursor: pointer; }
+.tempo { font-family: monospace; font-size: 1.5rem; text-align: center; margin: 10px 0; color: var(--aviso); }
+.info { font-size: 0.85rem; color: #888; margin-top: 15px; line-height: 1.6; }
+.destaque { color: var(--sucesso); font-weight: bold; }
+.btn-voltar {
+  display: inline-block; margin-bottom: 15px; padding: 10px 18px;
+  background: var(--a); color: white; border: none; border-radius: 8px;
+  font-weight: bold; cursor: pointer; text-decoration: none; font-size: 0.95rem;
+}
+.btn-voltar:hover { background: #0052cc; }
+</style>
+</head>
+<body>
+
+<h1>📹 GRAVADOR TOTAL — Toda a Tela</h1>
+<button class="btn-voltar" onclick="voltarIndex()" tabindex="-1">⬅️ Retornar ao Index</button>
+<div class="cartao">
+  <div id="status" class="status parado">✅ Pronto — Escolha TELA INTEIRA abaixo</div>
+  
+  <div class="opcoes">
+    <label>
+      <input type="checkbox" id="usarAudio" checked>
+      🎙️ Gravar voz do microfone
+    </label>
+    <label>
+      <input type="checkbox" id="incluirSistema">
+      🔊 Incluir som do computador (quando disponível)
+    </label>
+    <p style="margin-top:10px; color:#39ff14; font-size:0.9rem;">
+      ⚠️ Na pergunta: escolha <span class="destaque">"Tela inteira" ou "Tela 1"</span> — NÃO escolha apenas uma aba!
+    </p>
+  </div>
+
+  <div class="tempo" id="cronometro">00:00:00</div>
+
+  <div class="botoes">
+    <button id="btnIniciar" class="btn-iniciar">🔴 INICIAR GRAVAÇÃO TOTAL</button>
+    <button id="btnParar" class="btn-parar" disabled>⏹️ PARAR</button>
+    <button id="btnBaixar" class="btn-baixar" disabled>💾 BAIXAR VÍDEO</button>
+  </div>
+
+  <div class="info">
+    ✅ Grava mudanças de página, abas, programas — TUDO!<br>
+    ✅ A gravação NÃO para quando troca de página<br>
+    ✅ Continua gravando mesmo se fechar esta aba (até parar)<br>
+    ⚠️ Para funcionar: SEMPRE selecione a <strong>TELA INTEIRA</strong> na pergunta de permissão
+  </div>
+</div>
+
+<script>
+const statusEl = document.getElementById('status');
+const btnIniciar = document.getElementById('btnIniciar');
+const btnParar = document.getElementById('btnParar');
+const btnBaixar = document.getElementById('btnBaixar');
+const cronometroEl = document.getElementById('cronometro');
+const usarAudioEl = document.getElementById('usarAudio');
+const incluirSistemaEl = document.getElementById('incluirSistema');
+
+let gravador = null;
+let fluxoTela = null;
+let fluxoAudio = null;
+let blobFinal = null;
+let linkDownload = null;
+let dataInicio = null;
+let intervaloCronometro = null;
+let pedacos = [];
+
+function formatarTempo(segundos) {
+  const h = Math.floor(segundos / 3600).toString().padStart(2, '0');
+  const m = Math.floor((segundos % 3600) / 60).toString().padStart(2, '0');
+  const s = Math.floor(segundos % 60).toString().padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
+function atualizarStatus(texto, tipo = 'parado') {
+  statusEl.className = `status ${tipo}`;
+  statusEl.textContent = texto;
+}
+
+async function iniciar() {
+  try {
+    btnIniciar.disabled = true;
+    pedacos = [];
+    atualizarStatus('🔄 Solicitando TELA INTEIRA...', 'parado');
+
+    // GARANTE gravação de TELA COMPLETA
+    fluxoTela = await navigator.mediaDevices.getDisplayMedia({
+      video: {
+        cursor: 'always',
+        displaySurface: 'monitor',
+        logicalSurface: true
+      },
+      audio: incluirSistemaEl.checked
+    });
+
+    const faixas = [fluxoTela.getVideoTracks()[0]];
+
+    // Microfone separado
+    if (usarAudioEl.checked) {
+      try {
+        fluxoAudio = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 48000
+          }
+        });
+        faixas.push(...fluxoAudio.getAudioTracks());
+      } catch (e) {
+        console.warn('Microfone:', e);
+      }
+    }
+
+    // JUNTAR tela + áudio
+    const fluxoCompleto = new MediaStream(faixas);
+
+    // Melhor formato compatível
+    const mimeTypes = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm'
+    ];
+    let mimeType = mimeTypes.find(t => MediaRecorder.isTypeSupported(t)) || '';
+
+    gravador = new MediaRecorder(fluxoCompleto, {
+      mimeType,
+      videoBitsPerSecond: 5000000 // Qualidade alta
+    });
+
+    gravador.ondataavailable = e => {
+      if (e.data.size > 0) pedacos.push(e.data);
+    };
+
+    gravador.onstop = () => {
+      blobFinal = new Blob(pedacos, { type: 'video/webm' });
+      linkDownload = URL.createObjectURL(blobFinal);
+      btnBaixar.disabled = false;
+      const tempoTotal = formatarTempo((Date.now() - dataInicio) / 1000);
+      atualizarStatus(`✅ GRAVAÇÃO FINALIZADA! (${tempoTotal}) — Baixe abaixo`, 'sucesso');
+      clearInterval(intervaloCronometro);
+    };
+
+    // COMEÇA a gravar
+    gravador.start(500); // Envia dados a cada 0.5s — NÃO para sozinho
+    dataInicio = Date.now();
+    intervaloCronometro = setInterval(() => {
+      cronometroEl.textContent = formatarTempo((Date.now() - dataInicio) / 1000);
+    }, 1000);
+
+    btnParar.disabled = false;
+    atualizarStatus('🔴 GRAVANDO TELA INTEIRA — Mude de página, abas, tudo está sendo gravado!', 'gravando');
+
+    // Se o usuário parar pelo navegador → para tudo
+    fluxoTela.getVideoTracks()[0].onended = () => parar();
+
+  } catch (erro) {
+    atualizarStatus(`❌ Erro: ${erro.message}`, 'erro');
+    btnIniciar.disabled = false;
+    console.error(erro);
+  }
+}
+
+function parar() {
+  if (gravador && gravador.state !== 'inactive') gravador.stop();
+  [fluxoTela, fluxoAudio].forEach(f => f?.getTracks().forEach(t => t.stop()));
+  btnParar.disabled = true;
+  btnIniciar.disabled = false;
+}
+
+function baixar() {
+  if (!blobFinal) return;
+  const a = document.createElement('a');
+  a.href = linkDownload;
+  const dataArq = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  a.download = `GRAVACAO-TOTAL-${dataArq}.webm`;
+  a.click();
+}
+
+// 🔹 Retornar ao index
+function voltarIndex() {
+  window.location.href = 'index.html';
+}
+
+btnIniciar.addEventListener('click', iniciar);
+btnParar.addEventListener('click', parar);
+btnBaixar.addEventListener('click', baixar);
+
+function voltarIndex() {
+  window.location.href = 'index.html';
+}
+</script>
+</body>
+</html>
