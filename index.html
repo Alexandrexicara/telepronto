@@ -207,6 +207,7 @@
     <button class="btn-azul" onclick="maisLento()">⬇-</button>
     <span class="velocidade-box">Velocidade: <span id="mostrarVelocidade">0.80</span></span>
     <button id="botaoTelaCheia" class="btn-azul" onclick="alternarTelaCheia()">⛶ Tela Cheia</button>
+    <button class="btn-azul" type="button" onclick="abrirGravadorTela()">📹 Gravar tela inteira</button>
     <label class="controle-tamanho">Tamanho <input id="tamanhoTexto" type="range" min="20" max="100" value="32" oninput="alterarTamanho(this.value)"> <span id="mostrarTamanho">32px</span></label>
     <span id="status" class="status">pronto</span>
     <textarea id="entradaTexto" placeholder="Cole seu texto aqui... Depois clique em ▶ Texto para começar a rolar!"></textarea>
@@ -218,8 +219,6 @@
     <label for="arquivoTexto"><button type="button" class="btn-azul">⬆ Abrir .txt</button></label><input id="arquivoTexto" type="file" accept=".txt,text/plain" hidden onchange="abrirArquivo(this.files[0])">
 </div>
 <button class="botao-mostrar-controles" onclick="mostrarControles()">☰ Mostrar botões</button>
-<button class="btn-toggle-gravacao" id="btnToggleGravacao" onclick="toggleGravacao()">📹 Mostrar Gravar Tela</button>
-<button class="btn-gravar-tela" id="btnGravarTela" onclick="abrirGravadorTela()">📹 Gravar Tela</button>
 
 <script>
     const video = document.getElementById('camera');
@@ -352,23 +351,9 @@
     atualizarListaTextos();
     animar();
 
-    // 🔹 Mostrar/ocultar botão de gravar tela
-    function toggleGravacao() {
-        const btn = document.getElementById('btnGravarTela');
-        const toggle = document.getElementById('btnToggleGravacao');
-        btn.classList.toggle('visivel');
-        // Esconde o próprio toggle quando o botão de gravar está visível,
-        // e mostra novamente quando o botão de gravar é ocultado
-        if (btn.classList.contains('visivel')) {
-            toggle.classList.add('oculto');
-        } else {
-            toggle.classList.remove('oculto');
-        }
-    }
-
-    // 🔹 Abrir gravador de tela
+    // Abre o gravador de tela na mesma aba, sem bloqueio de pop-up.
     function abrirGravadorTela() {
-        window.open('gravador-tela.html', '_blank');
+        window.location.href = 'gravador-tela.html';
     }
 </script>
 </body>
