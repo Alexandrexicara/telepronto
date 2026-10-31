@@ -195,6 +195,7 @@
     <button class="btn-azul" onclick="maisLento()">⬇-</button>
     <span class="velocidade-box">Velocidade: <span id="mostrarVelocidade">0.80</span></span>
     <button id="botaoTelaCheia" class="btn-azul" onclick="alternarTelaCheia()">⛶ Tela Cheia</button>
+    <button class="btn-azul" type="button" onclick="abrirGravadorTela()">📹 Gravar tela inteira</button>
     <label class="controle-tamanho">Tamanho <input id="tamanhoTexto" type="range" min="20" max="100" value="32" oninput="alterarTamanho(this.value)"> <span id="mostrarTamanho">32px</span></label>
     <span id="status" class="status">pronto</span>
     <textarea id="entradaTexto" placeholder="Cole seu texto aqui... Depois clique em ▶ Texto para começar a rolar!"></textarea>
@@ -410,6 +411,11 @@
     carregarConta();
     if(new URLSearchParams(location.search).has('payment')) setTimeout(()=>{carregarConta();alert('Estamos confirmando seu pagamento. Os créditos aparecem assim que a SumUp confirmar.');},700);
 
+
+    // Abre o gravador de tela na mesma aba, sem bloqueio de pop-up.
+    function abrirGravadorTela() {
+        window.location.href = 'gravador-tela.html';
+    }
 </script>
 </body>
 </html>
