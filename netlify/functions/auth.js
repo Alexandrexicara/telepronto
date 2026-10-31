@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { db } = require('./lib/db');
 const { tokenFor, userFromEvent, json, body } = require('./lib/auth');
+const { isValidEmail } = require('./lib/validation');
 
 function serviceError(error) {
   const code = error && error.code;
@@ -36,7 +37,7 @@ exports.handler = async event => {
     const email = String(data.email || '').trim().toLowerCase();
     const password = String(data.password || '');
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+    if (!isValidEmail(email)) {
       return json(400, { error: 'Informe um e-mail válido.' });
     }
     if (password.length < 8 || password.length > 128) {
