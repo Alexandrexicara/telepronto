@@ -9,3 +9,5 @@ Ferramentas:
 - `telepronto_credit_packages`: pacotes públicos em BRL ou USD.
 
 Defina `MCP_ACCESS_TOKEN` nas variáveis do Netlify. Não publique esse token. O endpoint MCP não expõe dados privados de usuários nem permite alterar saldos.
+
+Compatibilidade: endpoint configurado para MCP moderno (revisão 2026-07-28) com respostas JSON sem sessão persistente, adequado ao ciclo de vida das Netlify Functions. Clientes antigos que só falam o protocolo 2025 precisam ser atualizados.
