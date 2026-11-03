@@ -64,48 +64,45 @@ exports.handler = async event => {
     }
 
     if (data.action === 'pix') {
-      const currency = data.currency === 'USD' ? 'USD' : 'BRL';
-      if (currency !== 'BRL') return json(400,{error:'PIX está disponível somente para compras em reais.'});
+      if (data.currency === 'USD') return json(400,{error:'PIX está disponível somente para compras em reais.'});
       const pack = PACKAGES.BRL.find(p=>p.id===data.packageId);
       if (!pack) return json(400,{error:'Pacote inválido.'});
-      const merchant = process.env.SUMUP_MERCHANT_CODE;
+      const merchant = String(process.env.SUMUP_MERCHANT_CODE || '').trim();
       if (!merchant) return json(503,{error:'SUMUP_MERCHANT_CODE não configurado no Netlify.'});
-      const appUrl = (process.env.APP_URL || 'https://telepronto.netlify.app').replace(/\/$/,'');
+      const appUrl = (process.env.APP_URL || 'https://telepronto.netlify.app').replace(/\\/$/,'');
       const reference = 'tp-' + randomUUID();
       await pool.query("INSERT INTO payments(user_id,reference,package_id,credits,amount,currency,status) VALUES($1,$2,$3,$4,$5,'BRL','pending')",[auth.sub,reference,pack.id,pack.videos,pack.amount]);
-      let checkout;
       try {
-        checkout = await sumup('/v0.1/checkouts',{method:'POST',body:JSON.stringify({
+        const checkout = await sumup('/v0.1/checkouts',{method:'POST',body:JSON.stringify({
           checkout_reference:reference, amount:pack.amount, currency:'BRL',
           merchant_code:merchant, description:'Telepronto - pacote '+pack.videos+' vídeos',
           return_url:appUrl+'/.netlify/functions/webhook',
           redirect_url:appUrl+'/?payment=return'
         })});
-        if (!checkout.id) throw new Error('A SumUp não retornou o identificador do checkout PIX.');
+        if (!checkout.id) throw new Error('A SumUp não retornou o identificador do checkout.');
+
         await pool.query('UPDATE payments SET checkout_id=$1 WHERE reference=$2',[checkout.id,reference]);
-        const methods = await sumup('/v0.1/checkouts/'+encodeURIComponent(checkout.id)+'/payment-methods');
-        const available = (methods.items || methods.available_payment_methods || []).map(x=>x.id);
+
+        // A lista de APMs é consultada no endpoint do estabelecimento, não dentro do checkout.
+        const methods = await sumup('/v0.1/merchants/'+encodeURIComponent(merchant)+'/payment-methods?amount='+encodeURIComponent(money(pack.amount))+'&currency=BRL');
+        const available = (methods.available_payment_methods || methods.items || []).map(x=>String(x.id || '').toLowerCase());
         const pixMethod = available.includes('pix') ? 'pix' : available.includes('qr_code_pix') ? 'qr_code_pix' : null;
         if (!pixMethod) {
           await pool.query("UPDATE payments SET status='failed' WHERE reference=$1",[reference]);
-          return json(409,{error:'PIX ainda não está habilitado para esta conta SumUp. A própria SumUp não ofereceu PIX neste checkout. Solicite a ativação de PIX/APMs à SumUp para o seu Merchant Code.'});
+          return json(409,{error:'A SumUp não disponibilizou PIX para este estabelecimento/valor. A conta precisa ter PIX online habilitado.'});
         }
+
         const processed = await sumup('/v0.1/checkouts/'+encodeURIComponent(checkout.id),{
           method:'PUT',body:JSON.stringify({payment_type:pixMethod})
         });
-        const artifacts = (processed[pixMethod]?.artefacts || processed.pix?.artefacts || processed.qr_code_pix?.artefacts || []);
-        const code = artifacts.find(x=>x.name==='code')?.content || '';
-        const imageArtifact = artifacts.find(x=>x.name==='barcode' && x.location);
-        let qrImage = null;
-        if (imageArtifact) {
-          const imageResponse = await fetch(imageArtifact.location,{headers:{Authorization:'Bearer '+String(process.env.SUMUP_API_KEY).trim()}});
-          if (imageResponse.ok) {
-            const mime = imageResponse.headers.get('content-type') || imageArtifact.content_type || 'image/jpeg';
-            const bytes = Buffer.from(await imageResponse.arrayBuffer());
-            qrImage = 'data:'+mime+';base64,'+bytes.toString('base64');
-          }
-        }
-        if (!code && !qrImage) throw new Error('A SumUp não retornou o QR Code nem o código PIX.');
+        const artifacts = processed[pixMethod]?.artefacts || processed[pixMethod]?.artifacts ||
+          processed.pix?.artefacts || processed.qr_code_pix?.artefacts || [];
+        const code = artifacts.find(x=>x.name==='code' && x.content)?.content ||
+          processed[pixMethod]?.code || processed[pixMethod]?.pix_code || '';
+        if (!code) throw new Error('A SumUp não retornou o código PIX copia e cola. Verifique se PIX online está habilitado na conta.');
+
+        const QRCode = require('qrcode');
+        const qrImage = await QRCode.toDataURL(code,{errorCorrectionLevel:'M',margin:2,width:320});
         return json(200,{method:pixMethod,reference,checkoutId:checkout.id,credits:pack.videos,amount:money(pack.amount),currency:'BRL',pixCode:code,qrImage,status:processed.status || 'PENDING'});
       } catch(error) {
         await pool.query("UPDATE payments SET status='failed' WHERE reference=$1 AND status='pending'",[reference]).catch(()=>{});
