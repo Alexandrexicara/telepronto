@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Administração | Telepronto</title>
+<style>
+:root{color-scheme:dark;--bg:#080d18;--panel:#111b2d;--line:#263650;--blue:#4d8dff;--muted:#9eacc2;--green:#2dd4a3}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#15294a 0,transparent 35%),var(--bg);color:#f4f7fc;font:15px Arial,sans-serif;min-height:100vh}
+header{display:flex;justify-content:space-between;align-items:center;padding:22px max(5vw,20px);border-bottom:1px solid var(--line)}.brand{font-size:20px;font-weight:800}.brand span{color:var(--blue)}button{border:0;border-radius:10px;padding:12px 16px;background:var(--blue);color:white;font-weight:700;cursor:pointer}button.secondary{background:#263650}button:disabled{opacity:.5;cursor:wait}
+main{max-width:1200px;margin:36px auto;padding:0 20px}.muted{color:var(--muted)}.login{max-width:420px;margin:9vh auto;background:var(--panel);padding:30px;border:1px solid var(--line);border-radius:18px}h1{margin:0 0 8px;font-size:27px}input{width:100%;padding:14px;margin:8px 0 14px;border:1px solid var(--line);border-radius:10px;background:#0a1322;color:white}label{display:block;color:var(--muted);font-size:13px}.error{color:#ff8c8c;min-height:22px}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:24px 0}.card,.section{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:18px}.metric{font-size:28px;font-weight:800;margin-top:8px}.section{margin:18px 0;overflow:auto}h2{font-size:18px;margin:0 0 15px}table{border-collapse:collapse;width:100%;min-width:680px}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line);font-size:13px}th{color:var(--muted)}.pill{padding:5px 8px;border-radius:20px;background:#20314a}.paid{color:var(--green)}.action{display:flex;gap:8px;align-items:center;min-width:230px}.action input{width:85px;margin:0;padding:9px}.hidden{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="brand">TELE<span>PRONTO</span> <small class="muted">/ ADMIN</small></div><button class="secondary" id="logout" class="hidden" onclick="logout()">Sair</button></header>
+<main>
+<section id="login" class="login"><h1>Painel administrativo</h1><p class="muted">Entre com a conta administradora do Telepronto.</p>
+<form id="formLogin"><label>E-mail</label><input id="email" type="email" autocomplete="username" required value="santossilvac992@gmail.com"><label>Senha</label><input id="password" type="password" autocomplete="current-password" required><button style="width:100%">Entrar no painel</button><p id="loginError" class="error"></p></form></section>
+<section id="dashboard" class="hidden"><h1>Visão geral</h1><p class="muted" id="welcome"></p>
+<div class="stats"><div class="card"><div class="muted">Usuários cadastrados</div><div class="metric" id="usersCount">—</div></div><div class="card"><div class="muted">Pagamentos confirmados</div><div class="metric" id="paidCount">—</div></div><div class="card"><div class="muted">Receita confirmada (BRL)</div><div class="metric" id="revenue">—</div></div><div class="card"><div class="muted">Créditos disponíveis</div><div class="metric" id="credits">—</div></div></div>
+<div class="section"><h2>Usuários e créditos</h2><table><thead><tr><th>E-mail</th><th>Perfil</th><th>Cadastro</th><th>Saldo</th><th>Adicionar créditos</th></tr></thead><tbody id="usersRows"></tbody></table></div>
+<div class="section"><h2>Pagamentos SumUp</h2><table><thead><tr><th>Usuário</th><th>Pacote</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead><tbody id="paymentsRows"></tbody></table></div>
+</section>
+</main>
+<script>
+const tokenKey='telepronto_token';let token=localStorage.getItem(tokenKey)||'';
+const $=id=>document.getElementById(id);
+async function api(url,options={}){const response=await fetch(url,{...options,headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,...(options.headers||{})}});const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.error||'Falha na solicitação');return data}
+function showLogin(message=''){ $('login').classList.remove('hidden');$('dashboard').classList.add('hidden');$('loginError').textContent=message;$('logout').classList.add('hidden')}
+function logout(){localStorage.removeItem(tokenKey);token='';showLogin()}
+$('formLogin').addEventListener('submit',async e=>{e.preventDefault();$('loginError').textContent='Validando acesso...';try{const result=await fetch('/.netlify/functions/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'login',email:$('email').value,password:$('password').value})});const data=await result.json();if(!result.ok)throw Error(data.error||'Falha no login');token=data.token;localStorage.setItem(tokenKey,token);await loadDashboard()}catch(error){$('loginError').textContent=error.message}});
+async function loadDashboard(){try{const data=await api('/.netlify/functions/admin');$('login').classList.add('hidden');$('dashboard').classList.remove('hidden');$('logout').classList.remove('hidden');$('welcome').textContent='Conectado como '+data.admin.email+' — acesso total';$('usersCount').textContent=data.stats.total_users;$('paidCount').textContent=data.stats.paid_payments;$('revenue').textContent=Number(data.stats.revenue_brl).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});$('credits').textContent=data.stats.available_credits;
+$('usersRows').innerHTML=data.users.map(u=>'<tr><td>'+esc(u.email)+'</td><td><span class="pill">'+esc(u.role)+'</span></td><td>'+new Date(u.created_at).toLocaleDateString('pt-BR')+'</td><td>'+u.balance+'</td><td><div class="action"><input type="number" min="1" max="100000" id="credit-'+u.id+'" value="10"><button onclick="addCredits(\''+u.id+'\')">Adicionar</button></div></td></tr>').join('');
+$('paymentsRows').innerHTML=data.payments.map(p=>'<tr><td>'+esc(p.email)+'</td><td>'+esc(p.package_id)+'</td><td>'+Number(p.amount).toLocaleString('pt-BR',{style:'currency',currency:p.currency})+'</td><td class="'+(p.status==='paid'?'paid':'')+'">'+esc(p.status)+'</td><td>'+new Date(p.created_at).toLocaleString('pt-BR')+'</td></tr>').join('')||'<tr><td colspan="5">Nenhum pagamento registrado.</td></tr>';
+}catch(error){if(error.message.includes('exclusivo')||error.message.includes('login'))logout();else showLogin(error.message)}}
+function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function addCredits(id){const amount=Number($('credit-'+id).value);if(!Number.isInteger(amount)||amount<1)return alert('Informe uma quantidade válida.');try{await api('/.netlify/functions/admin',{method:'POST',body:JSON.stringify({action:'add_credits',userId:id,credits:amount})});await loadDashboard();alert('Créditos adicionados com sucesso.')}catch(error){alert(error.message)}}
+if(token)loadDashboard();
+</script>
+</body></html>
