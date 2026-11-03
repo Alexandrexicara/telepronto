@@ -70,7 +70,7 @@ exports.handler = async event => {
       if (!pack) return json(400,{error:'Pacote inválido.'});
       const merchant = process.env.SUMUP_MERCHANT_CODE;
       if (!merchant) return json(503,{error:'SUMUP_MERCHANT_CODE não configurado no Netlify.'});
-      const appUrl = (process.env.APP_URL || 'https://telepronto.netlify.app').replace(/\\/$/,'');
+      const appUrl = (process.env.APP_URL || 'https://telepronto.netlify.app').replace(/\/$/,'');
       const reference = 'tp-' + randomUUID();
       await pool.query("INSERT INTO payments(user_id,reference,package_id,credits,amount,currency,status) VALUES($1,$2,$3,$4,$5,'BRL','pending')",[auth.sub,reference,pack.id,pack.videos,pack.amount]);
       let checkout;
