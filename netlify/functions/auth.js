@@ -24,10 +24,11 @@ exports.handler = async event => {
     }
 
     const pool = db();
+    await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user'");
     if (event.httpMethod === 'GET') {
       const auth = userFromEvent(event);
       if (!auth) return json(401, { error: 'Faça login novamente.' });
-      const result = await pool.query('SELECT id, email, created_at FROM users WHERE id=$1', [auth.sub]);
+      const result = await pool.query('SELECT id, email, role, created_at FROM users WHERE id=$1', [auth.sub]);
       if (!result.rowCount) return json(401, { error: 'Conta não encontrada.' });
       return json(200, { user: result.rows[0] });
     }
@@ -68,18 +69,25 @@ exports.handler = async event => {
     }
 
     if (data.action === 'login') {
-      const result = await pool.query(
-        'SELECT id,email,password_hash,created_at FROM users WHERE email=$1',
-        [email]
-      );
-      if (!result.rowCount || !(await bcrypt.compare(password, result.rows[0].password_hash))) {
+      const adminEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+      let result = await pool.query('SELECT id,email,password_hash,role,created_at FROM users WHERE email=$1', [email]);
+      if (adminEmail && email === adminEmail) {
+        const adminPassword = String(process.env.ADMIN_PASSWORD || '');
+        if (adminPassword.length < 8 || password !== adminPassword) return json(401, { error: 'E-mail ou senha incorretos.' });
+        const hash = await bcrypt.hash(adminPassword, 12);
+        if (!result.rowCount) {
+          result = await pool.query("INSERT INTO users(email,password_hash,role) VALUES($1,$2,'admin') RETURNING id,email,password_hash,role,created_at", [email, hash]);
+        } else {
+          result = await pool.query("UPDATE users SET password_hash=$2, role='admin' WHERE id=$1 RETURNING id,email,password_hash,role,created_at", [result.rows[0].id, hash]);
+        }
+      } else if (!result.rowCount || !(await bcrypt.compare(password, result.rows[0].password_hash))) {
         return json(401, { error: 'E-mail ou senha incorretos.' });
       }
       const user = result.rows[0];
       await pool.query('INSERT INTO wallets(user_id,balance) VALUES($1,0) ON CONFLICT(user_id) DO NOTHING', [user.id]);
       return json(200, {
         token: tokenFor(user),
-        user: { id: user.id, email: user.email, created_at: user.created_at }
+        user: { id: user.id, email: user.email, role: user.role || 'user', isAdmin: user.role === 'admin', created_at: user.created_at }
       });
     }
 
