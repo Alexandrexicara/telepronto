@@ -27,7 +27,7 @@ async function sumup(path, options={}) {
   if (!response.ok) {
     const error = new Error(data.detail || data.message || data.error_message || 'Falha na comunicação com SumUp (' + response.status + ').');
     error.statusCode = response.status;
-    error.sumupCode = data.error_code || data.error_code || data.type || null;
+    error.sumupCode = data.error_code || data.errorCode || data.type || null;
     error.traceId = data.trace_id || null;
     throw error;
   }
