@@ -94,8 +94,11 @@ exports.handler = async event => {
       let result = await pool.query('SELECT id,email,password_hash,role,created_at FROM users WHERE email=$1', [email]);
       if (adminEmail && email === adminEmail) {
         const adminPassword = String(process.env.ADMIN_PASSWORD || '');
-        if (adminPassword.length < 8 || password !== adminPassword) {
-          return json(401, { error: 'E-mail ou senha incorretos.' });
+        if (adminPassword.length < 8) {
+          return json(503, { error: 'ADMIN_PASSWORD não está disponível para esta função. Confira o contexto Production e publique novamente o site.' });
+        }
+        if (password !== adminPassword) {
+          return json(401, { error: 'A senha do administrador não confere com ADMIN_PASSWORD no Netlify. Confira o valor salvo e tente novamente.' });
         }
         const hash = await bcrypt.hash(adminPassword, 12);
         if (!result.rowCount) {
