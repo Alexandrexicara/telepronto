@@ -167,6 +167,15 @@
     </select>
     <select id="moedaCreditos" onchange="atualizarPacotesTela()"><option value="BRL">Brasil — Real (BRL)</option><option value="USD">Exterior — Dólar (USD)</option></select>
     <button class="btn-verde" style="width:100%" onclick="comprarCreditos()">💳 Comprar pacote pela SumUp</button>
+    <button class="btn-azul" style="width:100%" onclick="comprarComPix()">⚡ Pagar com PIX</button>
+    <div id="areaPix" hidden style="margin-top:10px;padding:12px;border:1px solid #287a4b;border-radius:10px;background:#10251a">
+      <strong>Pagamento PIX</strong>
+      <p id="statusPix" style="margin:8px 0">Gere seu QR Code para pagar.</p>
+      <img id="imagemPix" alt="QR Code PIX" style="display:none;width:220px;max-width:100%;background:#fff;padding:8px;border-radius:8px;margin:8px auto">
+      <textarea id="codigoPix" readonly rows="4" style="height:90px"></textarea>
+      <button class="btn-verde" style="width:100%" onclick="copiarCodigoPix()">📋 Copiar código PIX</button>
+      <small>Após pagar, a SumUp confirma a transação e os créditos entram automaticamente.</small>
+    </div>
     <button class="btn-azul" onclick="atualizarSaldo()">↻ Atualizar saldo</button>
     <button class="btn-vermelho" onclick="sairConta()">Sair da conta</button>
     <small>Os créditos não expiram. Uma gravação concluída consome 1 crédito.</small>
@@ -392,6 +401,28 @@
         const d=await apiConta('/.netlify/functions/billing',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({packageId:document.getElementById('pacoteCreditos').value,currency})});
         location.href=d.checkoutUrl;
       }catch(e){alert(e.message);}
+    }
+    async function comprarComPix(){
+      const area=document.getElementById('areaPix');
+      const status=document.getElementById('statusPix');
+      const imagem=document.getElementById('imagemPix');
+      const codigo=document.getElementById('codigoPix');
+      area.hidden=false; imagem.style.display='none'; codigo.value='';
+      status.textContent='Gerando cobrança PIX na SumUp...';
+      try{
+        const d=await apiConta('/.netlify/functions/billing',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pix',packageId:document.getElementById('pacoteCreditos').value,currency:'BRL'})});
+        codigo.value=d.pixCode||'';
+        if(d.qrImage){imagem.src=d.qrImage;imagem.style.display='block';}
+        status.textContent='PIX gerado — '+d.credits+' vídeos por R$ '+String(d.amount).replace('.',',')+'. Abra o app do banco e pague pelo QR Code ou código copia e cola.';
+      }catch(e){
+        status.textContent=e.message;
+      }
+    }
+    async function copiarCodigoPix(){
+      const codigo=document.getElementById('codigoPix').value;
+      if(!codigo)return alert('O código PIX ainda não foi gerado.');
+      try{await navigator.clipboard.writeText(codigo);alert('Código PIX copiado!');}
+      catch(e){document.getElementById('codigoPix').select();document.execCommand('copy');alert('Código PIX copiado!');}
     }
     function sairConta(){tokenConta='';usuarioConta=null;localStorage.removeItem('telepronto_token');carregarConta();}
     async function debitarGravacao(){
