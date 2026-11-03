@@ -42,9 +42,9 @@ exports.handler = async event => {
       return json(503, { error: 'JWT_SECRET não está configurada corretamente no ambiente deste deploy do Netlify.' });
     }
 
-    const pool = db();
-    await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user'");
     if (event.httpMethod === 'GET') {
+      const pool = db();
+      await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user'");
       const auth = userFromEvent(event);
       if (!auth) return json(401, { error: 'Faça login novamente.' });
       const result = await pool.query('SELECT id, email, role, created_at FROM users WHERE id=$1', [auth.sub]);
@@ -61,6 +61,10 @@ exports.handler = async event => {
     if (password.length < 8 || password.length > 128) {
       return json(400, { error: 'A senha deve ter entre 8 e 128 caracteres.' });
     }
+
+    // Só inicializa/acessa o PostgreSQL depois de validar os dados recebidos.
+    const pool = db();
+    await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user'");
 
     if (data.action === 'register') {
       client = await pool.connect();
