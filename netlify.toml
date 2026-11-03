@@ -10,6 +10,11 @@
   NODE_VERSION = "22"
 
 [[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+[[redirects]]
   from = "/api/textos"
   to = "/.netlify/functions/textos"
   status = 200
