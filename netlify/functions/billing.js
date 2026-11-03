@@ -84,8 +84,8 @@ exports.handler = async event => {
         await pool.query('UPDATE payments SET checkout_id=$1 WHERE reference=$2',[checkout.id,reference]);
 
         // A lista de APMs é consultada no endpoint do estabelecimento, não dentro do checkout.
-        const methods = await sumup('/v0.1/merchants/'+encodeURIComponent(merchant)+'/payment-methods?amount='+encodeURIComponent(money(pack.amount))+'&currency=BRL');
-        const available = (methods.available_payment_methods || methods.items || []).map(x=>String(x.id || '').toLowerCase());
+        const methods = await sumup('/v0.1/checkouts/'+encodeURIComponent(checkout.id)+'/payment-methods');
+        const available = (methods.items || methods.available_payment_methods || []).map(x=>String(x.id || '').toLowerCase());
         const pixMethod = available.includes('pix') ? 'pix' : available.includes('qr_code_pix') ? 'qr_code_pix' : null;
         if (!pixMethod) {
           await pool.query("UPDATE payments SET status='failed' WHERE reference=$1",[reference]);
@@ -98,7 +98,7 @@ exports.handler = async event => {
         const artifacts = processed[pixMethod]?.artefacts || processed[pixMethod]?.artifacts ||
           processed.pix?.artefacts || processed.qr_code_pix?.artefacts || [];
         const code = artifacts.find(x=>x.name==='code' && x.content)?.content ||
-          processed[pixMethod]?.code || processed[pixMethod]?.pix_code || '';
+          processed[pixMethod]?.code || processed[pixMethod]?.pix_code || ''; 
         if (!code) throw new Error('A SumUp não retornou o código PIX copia e cola. Verifique se PIX online está habilitado na conta.');
 
         const QRCode = require('qrcode');
