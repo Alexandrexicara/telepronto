@@ -125,9 +125,7 @@ async function getHandler() {
   return handlerPromise;
 }
 exports.handler = async event => {
-  const expected = process.env.MCP_ACCESS_TOKEN;
-  const auth = event.headers?.authorization || event.headers?.Authorization || '';
-  if (!expected || auth !== 'Bearer '+expected) return {statusCode:401,body:'Unauthorized'};
+  // Este MCP expõe somente catálogo, recursos e preços públicos; não exige token.
   try {
     const handler = await getHandler();
     const url = 'https://telepronto.netlify.app/.netlify/functions/mcp';
