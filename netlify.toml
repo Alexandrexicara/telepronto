@@ -10,6 +10,12 @@
   NODE_VERSION = "22"
 
 [[redirects]]
+  from = "/mcp"
+  to = "/.netlify/functions/mcp"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/admin"
   to = "/admin.html"
   status = 200
