@@ -68,8 +68,8 @@ const CATALOG = [
 
 function normalize(value) {
   return String(value || '').toLocaleLowerCase('pt-BR')
-    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')
-    .replace(/[^a-z0-9\\s]/g, ' ').replace(/\\s+/g, ' ').trim();
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 function searchCatalog(query) {
   const q = normalize(query);
