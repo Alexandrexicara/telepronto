@@ -8,7 +8,7 @@ exports.handler = async event => {
     databaseConfigured: Boolean(process.env.DATABASE_URL),
     jwtConfigured: Boolean(process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32),
     sumupConfigured: Boolean(process.env.SUMUP_API_KEY && process.env.SUMUP_MERCHANT_CODE),
-    mcpConfigured: Boolean(process.env.MCP_ACCESS_TOKEN && process.env.MCP_ACCESS_TOKEN.length >= 32)
+    mcpConfigured: true // O catálogo MCP é público e não depende de token
   };
 
   let databaseConnected = false;
