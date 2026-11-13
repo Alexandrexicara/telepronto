@@ -153,7 +153,7 @@
     <strong>Conta Telepronto</strong>
     <small>Crie sua conta para guardar seus créditos e usar em outros dispositivos.</small>
     <input id="contaEmail" type="email" autocomplete="email" placeholder="Seu e-mail">
-    <input id="contaSenha" type="password" autocomplete="current-password" placeholder="Senha (mínimo 8 caracteres)">
+    <div style="position:relative"><input id="contaSenha" type="password" autocomplete="current-password" placeholder="Senha (mínimo 8 caracteres)" style="padding-right:54px"><button type="button" aria-label="Mostrar senha" onclick="alternarVisibilidadeSenha('contaSenha',this)" style="position:absolute;right:5px;top:8px;padding:8px;background:#333;color:white">👁</button></div>
     <div class="linha"><button class="btn-verde" onclick="autenticarConta('register')">Criar conta</button><button class="btn-azul" onclick="autenticarConta('login')">Entrar</button></div>
     <small id="mensagemConta"></small>
   </div>
@@ -359,6 +359,7 @@
       if(!r.ok) throw new Error(data.error||'Não foi possível concluir a operação.');
       return data;
     }
+    function alternarVisibilidadeSenha(id,botao){const campo=document.getElementById(id);const mostrar=campo.type==='password';campo.type=mostrar?'text':'password';botao.textContent=mostrar?'🙈':'👁';botao.setAttribute('aria-label',mostrar?'Ocultar senha':'Mostrar senha');}
     async function autenticarConta(action){
       const msg=document.getElementById('mensagemConta'); msg.textContent='Aguarde...';
       try{
@@ -428,6 +429,7 @@
     }
     function sairConta(){tokenConta='';usuarioConta=null;localStorage.removeItem('telepronto_token');carregarConta();}
     async function debitarGravacao(){
+      if(usuarioConta?.role==='admin') return {ok:true,adminFree:true};
       if(!tokenConta) throw new Error('Entre na sua conta antes de gravar.');
       const id=crypto.randomUUID();
       return await apiConta('/.netlify/functions/billing',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'consume',recordingId:id})});
@@ -437,7 +439,7 @@
       if(!tokenConta){alternarPainelConta();alert('Entre ou crie sua conta para usar as gravações com créditos.');return;}
       try{
         const carteira=await apiConta('/.netlify/functions/billing');
-        if(Number(carteira.balance)<1){alternarPainelConta();alert('Você está sem créditos. Compre um pacote para gravar.');return;}
+        if(usuarioConta?.role!=='admin' && Number(carteira.balance)<1){alternarPainelConta();alert('Você está sem créditos. Compre um pacote para gravar.');return;}
         iniciarGravacaoOriginal(Number(event?.detail) > 0); // eventos de teclado (Espaço/Enter) nunca ocultam os controles
       }catch(e){alert(e.message);}
     };
