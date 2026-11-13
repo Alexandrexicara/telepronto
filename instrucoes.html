@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>Como usar o Telepronto</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1120;--panel:#151f32;--line:#29364d;--text:#f4f7fb;--muted:#b7c3d4;--green:#22c55e;--blue:#2785ee}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#172b48 0,#0b1120 58%);color:var(--text);font:16px/1.65 Arial,sans-serif}
+header{padding:28px 18px 18px;text-align:center}header .marca{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#86efac;font-weight:700}h1{font-size:clamp(30px,6vw,48px);line-height:1.1;margin:12px auto;max-width:850px}header p{color:var(--muted);max-width:700px;margin:12px auto 22px}
+.acoes{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-radius:10px;padding:12px 18px;font-weight:700;color:white;background:var(--blue)}.btn.sec{background:#26354c;border:1px solid #40516d}
+main{width:min(980px,calc(100% - 28px));margin:0 auto 50px}.secao{background:rgba(21,31,50,.94);border:1px solid var(--line);border-radius:18px;padding:22px;margin:18px 0;box-shadow:0 12px 30px #0002}.secao h2{margin:0 0 8px;font-size:24px}.intro{color:var(--muted);margin-top:0}.passos{counter-reset:passo;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:18px}.passo{background:#0e1829;border:1px solid #2a3a52;border-radius:13px;padding:16px}.passo:before{counter-increment:passo;content:counter(passo);display:grid;place-items:center;width:30px;height:30px;background:#14532d;color:#bbf7d0;border-radius:50%;font-weight:800;margin-bottom:10px}.passo strong{display:block;margin-bottom:5px}.passo p{margin:0;color:var(--muted);font-size:14px}
+ul{padding-left:22px;color:var(--muted)}li{margin:7px 0}.dica{border-left:4px solid var(--green);background:#10291f;padding:12px 15px;border-radius:8px;margin-top:15px;color:#d8fbe4}.aviso{border-left:4px solid #eab308;background:#302711;padding:12px 15px;border-radius:8px;margin-top:15px;color:#fff1bd}
+.faq details{border-top:1px solid var(--line);padding:13px 0}.faq summary{cursor:pointer;font-weight:700}.faq details p{color:var(--muted);margin:8px 0 0}footer{text-align:center;color:#8291a7;padding:10px 20px 35px;font-size:13px}
+@media(max-width:600px){.secao{padding:17px}.btn{width:100%}.acoes{display:grid}}
+</style>
+</head>
+<body>
+<header>
+ <div class="marca">Telepronto • Central de ajuda</div>
+ <h1>Aprenda a usar o Telepronto e o Gravador de Tela</h1>
+ <p>Veja como preparar seu roteiro, gravar vídeos com a câmera e usar o gravador de tela. Siga os passos e permita o acesso à câmera, ao microfone ou à tela quando o navegador solicitar.</p>
+ <div class="acoes"><a class="btn" href="index.html">Abrir Telepronto</a><a class="btn sec" href="gravador-tela.html">Abrir Gravador de Tela</a></div>
+</header>
+<main>
+<section class="secao">
+ <h2>1. Como usar o Telepronto para gravar vídeos</h2>
+ <p class="intro">Use o teleprompter para ler seu roteiro enquanto grava com a câmera.</p>
+ <div class="passos">
+  <div class="passo"><strong>Abra o Telepronto</strong><p>Entre na página principal e, se necessário, crie sua conta ou faça login.</p></div>
+  <div class="passo"><strong>Prepare seu roteiro</strong><p>Cole o texto na caixa “Cole seu texto aqui...” e toque em “Colocar Texto”.</p></div>
+  <div class="passo"><strong>Ligue a câmera</strong><p>Toque em “Ligar Câmera” e permita o acesso à câmera e ao microfone.</p></div>
+  <div class="passo"><strong>Ajuste a leitura</strong><p>Escolha o tamanho das letras e ajuste a velocidade pelos botões de mais rápido e mais lento.</p></div>
+  <div class="passo"><strong>Comece a gravar</strong><p>Toque em “GRAVAR”. O texto começa a rolar para você acompanhar enquanto fala.</p></div>
+  <div class="passo"><strong>Finalize e salve</strong><p>Toque em “Parar”. O vídeo é preparado e o navegador inicia o download do arquivo.</p></div>
+ </div>
+ <div class="dica"><strong>Dica:</strong> faça um teste curto antes da gravação definitiva. Confira enquadramento, iluminação, áudio e espaço disponível no aparelho.</div>
+</section>
+<section class="secao">
+ <h2>2. Como usar o Gravador de Tela HTML</h2>
+ <p class="intro">Essa opção grava a tela compartilhada pelo navegador e pode incluir sua voz pelo microfone.</p>
+ <div class="passos">
+  <div class="passo"><strong>Abra o gravador</strong><p>Na página principal, toque em “Gravador de tela HTML”.</p></div>
+  <div class="passo"><strong>Escolha o áudio</strong><p>Marque “Gravar voz do microfone” se quiser narrar. O som do computador depende do navegador e do dispositivo.</p></div>
+  <div class="passo"><strong>Inicie a gravação</strong><p>Toque em “Iniciar gravação total” e escolha a tela, janela ou aba que deseja compartilhar.</p></div>
+  <div class="passo"><strong>Confirme o compartilhamento</strong><p>Na janela do navegador, selecione a origem desejada e confirme em “Compartilhar”.</p></div>
+  <div class="passo"><strong>Grave normalmente</strong><p>O cronômetro mostra o tempo. Mantenha o compartilhamento ativo durante a captura.</p></div>
+  <div class="passo"><strong>Pare e baixe</strong><p>Toque em “Parar” e, quando o processamento terminar, use “Baixar vídeo”.</p></div>
+ </div>
+ <div class="aviso"><strong>Atenção:</strong> o navegador pode não permitir gravar a tela inteira em celulares ou em alguns dispositivos. A disponibilidade depende do navegador, do sistema e das permissões. Se a opção não aparecer, tente em um computador com navegador atualizado.</div>
+</section>
+<section class="secao">
+ <h2>3. Botões e recursos da página principal</h2>
+ <ul>
+  <li><strong>Texto:</strong> inicia ou pausa a rolagem do roteiro.</li>
+  <li><strong>Velocidade:</strong> ajusta o ritmo de rolagem do texto.</li>
+  <li><strong>Tamanho:</strong> aumenta ou diminui as letras.</li>
+  <li><strong>Tela cheia:</strong> amplia a área de leitura.</li>
+  <li><strong>Salvar no projeto:</strong> guarda o roteiro na conta/servidor quando o recurso estiver disponível.</li>
+  <li><strong>Arquivar .txt / Abrir .txt:</strong> permite baixar ou carregar um roteiro em arquivo de texto.</li>
+  <li><strong>Conta / Créditos:</strong> mostra a conta e o saldo. Consulte os pacotes e as condições antes de comprar.</li>
+ </ul>
+</section>
+<section class="secao faq">
+ <h2>4. Dúvidas frequentes</h2>
+ <details><summary>Por que a câmera ou o microfone não funcionam?</summary><p>Confira se o site está aberto em HTTPS, permita o acesso quando o navegador perguntar e verifique se outro aplicativo não está usando a câmera ou o microfone.</p></details>
+ <details><summary>Onde encontro o vídeo gravado?</summary><p>O navegador normalmente salva o arquivo na pasta Downloads do aparelho ou computador. O formato gerado pode ser WebM.</p></details>
+ <details><summary>Posso gravar a tela e a câmera ao mesmo tempo?</summary><p>O Telepronto oferece gravação de câmera com roteiro e uma ferramenta separada para captura de tela. A composição simultânea das duas fontes não é garantida nesta versão.</p></details>
+ <details><summary>Por que não consigo gravar a tela no celular?</summary><p>Alguns navegadores móveis não oferecem a função de captura de tela usada pelo gravador. Tente em um computador ou use um navegador compatível com compartilhamento de tela.</p></details>
+ <details><summary>O vídeo é enviado automaticamente para o Telepronto?</summary><p>Não. Nesta versão, a gravação é gerada no navegador e baixada no seu dispositivo. Guarde uma cópia do arquivo.</p></details>
+</section>
+<div class="acoes"><a class="btn" href="index.html">Voltar ao Telepronto</a><a class="btn sec" href="gravador-tela.html">Ir para o Gravador de Tela</a></div>
+</main>
+<footer>Telepronto • Guia de utilização</footer>
+</body>
+</html>
