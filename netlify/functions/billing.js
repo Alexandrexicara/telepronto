@@ -50,6 +50,8 @@ exports.handler = async event => {
     if (data.action === 'consume') {
       const key = String(data.recordingId || '');
       if (!/^[a-zA-Z0-9-]{16,80}$/.test(key)) return json(400,{error:'Identificador de gravação inválido.'});
+      const account = await pool.query('SELECT role FROM users WHERE id=$1',[auth.sub]);
+      if (account.rows[0]?.role === 'admin') return json(200,{ok:true,adminFree:true});
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
