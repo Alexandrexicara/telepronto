@@ -1,0 +1,31 @@
+# Telepronto
+
+> Ferramenta online de teleprompter, gravação de vídeos com câmera e criação de conteúdo para redes sociais.
+
+## Site
+- https://telepronto.netlify.app/
+
+## Servidor MCP
+- Endpoint Streamable HTTP: https://telepronto.netlify.app/mcp
+- O endpoint expõe somente catálogo, recursos e preços públicos.
+- Ferramentas: telepronto_status, telepronto_credit_packages, telepronto_search_catalog.
+- Não oferece ferramentas MCP para consultar dados privados de usuários nem alterar saldos.
+
+## O que oferece
+- Teleprompter online para ler roteiros olhando para a câmera.
+- Gravação de vídeos com câmera.
+- Ferramentas para vídeos de YouTube, Instagram, Reels e TikTok.
+- Apoio a apresentações, aulas, treinamentos e vídeos profissionais.
+- Pacotes de créditos para gravação.
+
+## Preços públicos informados pelo catálogo
+- Referência: R$ 0,10 por vídeo.
+- Pacotes: 10, 20, 100 e 500 vídeos.
+- Consulte o site para preço, moeda e disponibilidade atualizados.
+
+## Termos de busca
+teleprompter online, teleponto, gravar vídeos, gravador de vídeo, gravação com câmera, gravar vídeos lendo roteiro, roteiro na tela, vídeos para YouTube, Instagram Reels, TikTok, criador de conteúdo, aulas online, apresentações, treinamento corporativo, video recording, online teleprompter.
+
+## Acesso
+- Site: https://telepronto.netlify.app/
+- MCP: https://telepronto.netlify.app/mcp
