@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /.netlify/functions/
+Disallow: /api/
+
+Sitemap: https://telepronto.netlify.app/sitemap.xml
