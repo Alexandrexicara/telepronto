@@ -22,9 +22,8 @@ Em **Site configuration > Environment variables**, configure:
 | `SUMUP_API_KEY` | Chave de API da SumUp |
 | `SUMUP_MERCHANT_CODE` | Código do estabelecimento SumUp |
 | `APP_URL` | URL pública, por exemplo `https://telepronto.netlify.app` |
-| `MCP_ACCESS_TOKEN` | Token privado forte para proteger o MCP |
 
-Use geradores seguros para criar `JWT_SECRET` e `MCP_ACCESS_TOKEN`. Nunca reutilize a chave da SumUp como segredo JWT. Configure as variáveis nos contextos de Deploy Preview e Production conforme for testar/publicar.
+Use geradores seguros para criar `JWT_SECRET`. Nunca reutilize a chave da SumUp como segredo JWT. Configure as variáveis nos contextos de Deploy Preview e Production conforme for testar/publicar.
 
 O arquivo `.env.example` lista os nomes das variáveis sem conter credenciais reais.
 
@@ -52,9 +51,9 @@ Endpoints principais:
 
 Endpoint remoto: `https://telepronto.netlify.app/.netlify/functions/mcp`
 
-Transporte: Streamable HTTP. Autorização: `Authorization: Bearer <MCP_ACCESS_TOKEN>`.
+Transporte: Streamable HTTP. O catálogo público não exige token e disponibiliza somente informações e preços públicos.
 
-Ferramentas iniciais: `telepronto_status` e `telepronto_credit_packages`. O endpoint exige token e não deve ser compartilhado publicamente.
+Ferramentas: `telepronto_status`, `telepronto_credit_packages` e `telepronto_search_catalog`. O endpoint é público e não permite consultar dados privados nem alterar saldos.
 
 ## 6. Publicação segura
 
