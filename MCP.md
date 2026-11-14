@@ -2,12 +2,14 @@
 
 Endpoint remoto: `https://telepronto.netlify.app/.netlify/functions/mcp`
 
-Transporte: MCP Streamable HTTP (SDK oficial). Requer cabeçalho `Authorization: Bearer <MCP_ACCESS_TOKEN>`.
+Transporte: MCP Streamable HTTP (SDK oficial). O catálogo MCP é público e não exige token; expõe somente informações, ferramentas e preços públicos.
 
 Ferramentas:
 - `telepronto_status`: estado e recursos públicos.
 - `telepronto_credit_packages`: pacotes públicos em BRL ou USD.
 
-Defina `MCP_ACCESS_TOKEN` nas variáveis do Netlify. Não publique esse token. O endpoint MCP não expõe dados privados de usuários nem permite alterar saldos.
+O endpoint MCP não exige token. Ele não expõe dados privados de usuários nem permite alterar saldos.
+
+Ferramentas: `telepronto_status`, `telepronto_credit_packages` e `telepronto_search_catalog`.
 
 Compatibilidade: endpoint configurado para MCP moderno (revisão 2026-07-28) com respostas JSON sem sessão persistente, adequado ao ciclo de vida das Netlify Functions. Clientes antigos que só falam o protocolo 2025 precisam ser atualizados.
