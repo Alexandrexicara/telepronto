@@ -1,5 +1,5 @@
 [build]
-  command = "npm install --no-audit --no-fund && npm run check"
+  command = "npm install --no-audit --no-fund && npm run check && npm run build:repertorio"
   publish = "."
   functions = "netlify/functions"
 
@@ -29,6 +29,18 @@
   from = "/api/textos/*"
   to = "/.netlify/functions/textos/:splat"
   status = 200
+
+[[redirects]]
+  from = "/repertorio-karaoke"
+  to = "/dist-repertorio/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/repertorio-karaoke/*"
+  to = "/dist-repertorio/:splat"
+  status = 200
+  force = true
 
 [[headers]]
   for = "/*"
